@@ -1,0 +1,17 @@
+{
+  "name": "Alacena",
+  "short_name": "Alacena",
+  "description": "Pantry stock tracker",
+  "theme_color": "#2E7D32",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
