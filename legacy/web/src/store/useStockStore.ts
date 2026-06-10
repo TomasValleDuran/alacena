@@ -5,17 +5,20 @@ import { supabase } from '@/lib/supabase'
 
 type StockState = {
   items: StockItemWithProduct[]
+  loaded: boolean
   loading: boolean
   error: string | null
   fetchStock: () => Promise<void>
   /** Insert or return existing product by barcode */
   upsertProduct: (insert: ProductInsert) => Promise<Product>
-  /** Add quantity to stock for an existing product (creates row if missing) */
-  addOrUpdateItem: (product: Product, additionalQty: number) => Promise<void>
-  incrementItem: (stockItemId: string) => Promise<void>
-  decrementItem: (stockItemId: string) => Promise<void>
-  setStockQuantity: (stockItemId: string, quantity: number) => Promise<void>
-  setMinQty: (stockItemId: string, minQty: number) => Promise<void>
+  /**
+   * Add delta to a product's stock, creating the stock row if missing.
+   * Negative deltas subtract (floored at 0). Returns the resulting quantity.
+   */
+  addToStock: (product: Product, delta: number) => Promise<number>
+  /** Optimistic +/- on an existing stock item (list steppers) */
+  adjustItem: (stockItemId: string, delta: number) => Promise<void>
+  setQuantities: (stockItemId: string, quantity: number, minQty: number) => Promise<void>
   deleteItem: (stockItemId: string) => Promise<void>
 }
 
@@ -41,6 +44,7 @@ function normalize(row: StockRow): StockItemWithProduct {
 
 export const useStockStore = create<StockState>((set, get) => ({
   items: [],
+  loaded: false,
   loading: false,
   error: null,
 
@@ -61,16 +65,12 @@ export const useStockStore = create<StockState>((set, get) => ({
       .order('updated_at', { ascending: false })
 
     if (error) {
-      set({ loading: false, error: error.message })
+      set({ loading: false, loaded: true, error: error.message })
       return
     }
 
     const rows = (data ?? []) as unknown as StockRow[]
-    set({
-      items: rows.map(normalize),
-      loading: false,
-      error: null,
-    })
+    set({ items: rows.map(normalize), loading: false, loaded: true, error: null })
   },
 
   upsertProduct: async (insert: ProductInsert) => {
@@ -112,30 +112,30 @@ export const useStockStore = create<StockState>((set, get) => ({
     return created as Product
   },
 
-  addOrUpdateItem: async (product: Product, additionalQty: number) => {
-    if (additionalQty <= 0) return
-
+  addToStock: async (product: Product, delta: number) => {
     const { data: row, error: findErr } = await supabase
       .from('stock_items')
-      .select('id, quantity')
+      .select('id, quantity, min_qty')
       .eq('product_id', product.id)
       .maybeSingle()
 
     if (findErr) throw new Error(findErr.message)
 
     const now = new Date().toISOString()
+    let next: number
 
     if (row) {
-      const next = Number(row.quantity) + additionalQty
+      next = Math.max(0, Number(row.quantity) + delta)
       const { error } = await supabase
         .from('stock_items')
         .update({ quantity: next, updated_at: now })
         .eq('id', row.id)
       if (error) throw new Error(error.message)
     } else {
+      next = Math.max(0, delta)
       const { error } = await supabase.from('stock_items').insert({
         product_id: product.id,
-        quantity: additionalQty,
+        quantity: next,
         min_qty: 0,
         updated_at: now,
       })
@@ -143,47 +143,37 @@ export const useStockStore = create<StockState>((set, get) => ({
     }
 
     await get().fetchStock()
+    return next
   },
 
-  incrementItem: async (stockItemId: string) => {
+  adjustItem: async (stockItemId: string, delta: number) => {
     const item = get().items.find((i) => i.id === stockItemId)
     if (!item) return
-    const next = item.quantity + 1
+    const next = Math.max(0, item.quantity + delta)
+    if (next === item.quantity) return
+
+    // optimistic update so steppers feel instant
+    set({
+      items: get().items.map((i) => (i.id === stockItemId ? { ...i, quantity: next } : i)),
+    })
+
     const { error } = await supabase
       .from('stock_items')
       .update({ quantity: next, updated_at: new Date().toISOString() })
       .eq('id', stockItemId)
-    if (error) throw new Error(error.message)
-    await get().fetchStock()
+
+    if (error) {
+      set({ error: error.message })
+      await get().fetchStock()
+    }
   },
 
-  decrementItem: async (stockItemId: string) => {
-    const item = get().items.find((i) => i.id === stockItemId)
-    if (!item) return
-    const next = Math.max(0, item.quantity - 1)
+  setQuantities: async (stockItemId: string, quantity: number, minQty: number) => {
+    const safeQty = Math.max(0, quantity)
+    const safeMin = Math.max(0, minQty)
     const { error } = await supabase
       .from('stock_items')
-      .update({ quantity: next, updated_at: new Date().toISOString() })
-      .eq('id', stockItemId)
-    if (error) throw new Error(error.message)
-    await get().fetchStock()
-  },
-
-  setStockQuantity: async (stockItemId: string, quantity: number) => {
-    const safe = Math.max(0, quantity)
-    const { error } = await supabase
-      .from('stock_items')
-      .update({ quantity: safe, updated_at: new Date().toISOString() })
-      .eq('id', stockItemId)
-    if (error) throw new Error(error.message)
-    await get().fetchStock()
-  },
-
-  setMinQty: async (stockItemId: string, minQty: number) => {
-    const safe = Math.max(0, minQty)
-    const { error } = await supabase
-      .from('stock_items')
-      .update({ min_qty: safe, updated_at: new Date().toISOString() })
+      .update({ quantity: safeQty, min_qty: safeMin, updated_at: new Date().toISOString() })
       .eq('id', stockItemId)
     if (error) throw new Error(error.message)
     await get().fetchStock()

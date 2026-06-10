@@ -21,8 +21,8 @@ export default defineConfig({
         name: 'Alacena',
         short_name: 'Alacena',
         description: 'Pantry stock tracker',
-        theme_color: '#2E7D32',
-        background_color: '#ffffff',
+        theme_color: '#324b2b',
+        background_color: '#f3edda',
         display: 'standalone',
         start_url: '/',
         icons: [

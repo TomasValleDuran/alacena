@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { StockList } from '@/components/StockList'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useStockStore } from '@/store/useStockStore'
+import { StockRow } from '@/components/StockRow'
+
+type Filter = 'all' | 'low'
 
 export function Home() {
-  const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<Filter>('all')
   const items = useStockStore((s) => s.items)
-  const loading = useStockStore((s) => s.loading)
+  const loaded = useStockStore((s) => s.loaded)
   const error = useStockStore((s) => s.error)
   const fetchStock = useStockStore((s) => s.fetchStock)
 
@@ -15,62 +17,135 @@ export function Home() {
     void fetchStock()
   }, [fetchStock])
 
+  const lowCount = useMemo(
+    () =>
+      items.filter(
+        (i) =>
+          i.quantity <= 0 || (i.min_qty != null && i.min_qty > 0 && i.quantity <= i.min_qty),
+      ).length,
+    [items],
+  )
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return items
+      .filter((i) => {
+        if (filter === 'low') {
+          const low =
+            i.quantity <= 0 || (i.min_qty != null && i.min_qty > 0 && i.quantity <= i.min_qty)
+          if (!low) return false
+        }
+        if (!q) return true
+        return (
+          i.product.name.toLowerCase().includes(q) ||
+          (i.product.brand?.toLowerCase().includes(q) ?? false)
+        )
+      })
+      .sort((a, b) => a.product.name.localeCompare(b.product.name, 'es'))
+  }, [items, query, filter])
+
   return (
-    <div className="flex min-h-full flex-col pb-24">
-      <header className="sticky top-0 z-20 border-b border-zinc-200 bg-zinc-50/95 px-4 py-4 backdrop-blur">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
-          <h1 className="text-xl font-bold text-green-900">Mi alacena</h1>
-          <button
-            type="button"
-            onClick={() => void fetchStock()}
-            className="rounded-lg px-2 py-1 text-sm font-medium text-green-800 underline-offset-2 hover:underline"
-          >
-            Actualizar
-          </button>
-        </div>
-        <div className="mx-auto mt-3 max-w-lg">
-          <input
-            type="search"
-            placeholder="Buscar por nombre…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-base outline-none ring-green-700 focus:ring-2"
-          />
+    <div className="flex min-h-full flex-col pb-28">
+      <header className="border-line bg-paper/90 sticky top-0 z-20 border-b px-4 pt-5 pb-3 backdrop-blur">
+        <div className="mx-auto w-full max-w-2xl">
+          <div className="flex items-end justify-between gap-3">
+            <h1 className="font-display text-3xl font-semibold tracking-tight italic">
+              Alacena
+            </h1>
+            <p className="text-ink-soft pb-1 text-sm">
+              {items.length} producto{items.length === 1 ? '' : 's'}
+              {lowCount > 0 ? (
+                <>
+                  {' · '}
+                  <span className="text-clay-600 font-semibold">{lowCount} por reponer</span>
+                </>
+              ) : null}
+            </p>
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <input
+              type="search"
+              placeholder="Buscar en la alacena…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="border-line bg-card placeholder:text-ink-soft/70 ring-pine-600 w-full rounded-full border px-4 py-2.5 text-base outline-none focus:ring-2"
+            />
+          </div>
+
+          <div className="mt-3 flex gap-2 text-sm">
+            <button
+              type="button"
+              onClick={() => setFilter('all')}
+              className={`rounded-full px-3.5 py-1.5 font-semibold transition ${
+                filter === 'all'
+                  ? 'bg-pine-800 text-card'
+                  : 'border-line bg-card text-ink-soft border'
+              }`}
+            >
+              Todo
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilter('low')}
+              className={`rounded-full px-3.5 py-1.5 font-semibold transition ${
+                filter === 'low'
+                  ? 'bg-clay-600 text-card'
+                  : 'border-line bg-card text-ink-soft border'
+              }`}
+            >
+              Por reponer{lowCount > 0 ? ` · ${lowCount}` : ''}
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4">
-        {loading && items.length === 0 ? (
-          <p className="text-center text-sm text-zinc-500">Cargando…</p>
-        ) : null}
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-4">
         {error ? (
-          <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <p className="border-clay-600/40 bg-clay-100 text-clay-700 mb-4 rounded-2xl border px-4 py-3 text-sm font-medium">
             {error}
           </p>
         ) : null}
-        <StockList items={items} query={query} />
+
+        {!loaded ? (
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {[0, 1, 2, 3].map((n) => (
+              <li
+                key={n}
+                className="border-line bg-card/60 h-20 animate-pulse rounded-2xl border"
+              />
+            ))}
+          </ul>
+        ) : visible.length === 0 ? (
+          <div className="animate-rise border-line mt-10 rounded-3xl border border-dashed px-6 py-14 text-center">
+            <p className="font-display text-2xl italic">
+              {items.length === 0 ? 'Alacena vacía' : 'Nada por acá'}
+            </p>
+            <p className="text-ink-soft mx-auto mt-2 max-w-xs text-sm">
+              {items.length === 0
+                ? 'Agregá tu primer producto con el lector o escribiendo el código de barras.'
+                : filter === 'low'
+                  ? 'No hay productos por reponer. Buen stock.'
+                  : 'Ningún producto coincide con la búsqueda.'}
+            </p>
+          </div>
+        ) : (
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {visible.map((item) => (
+              <StockRow key={item.id} item={item} />
+            ))}
+          </ul>
+        )}
       </main>
 
-      <Link
-        to="/scanner"
-        className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-green-800 text-3xl font-light text-white shadow-lg shadow-green-900/30 active:scale-95"
-        aria-label="Abrir escáner"
-      >
-        +
-      </Link>
-
-      <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-zinc-200 bg-white/95 px-4 py-2 backdrop-blur">
-        <div className="mx-auto flex max-w-lg justify-around text-sm">
-          <span className="font-semibold text-green-900">Inicio</span>
-          <button
-            type="button"
-            className="font-medium text-zinc-600"
-            onClick={() => navigate('/scanner')}
-          >
-            Escanear
-          </button>
-        </div>
-      </nav>
+      <div className="from-paper via-paper/90 fixed right-0 bottom-0 left-0 z-30 bg-gradient-to-t to-transparent px-4 pt-8 pb-5">
+        <Link
+          to="/add"
+          className="bg-pine-800 text-card shadow-pine-900/30 active:bg-pine-900 mx-auto flex w-full max-w-md items-center justify-center gap-2 rounded-full py-4 text-base font-bold shadow-lg transition active:scale-[0.98]"
+        >
+          <span className="text-xl leading-none">＋</span> Agregar productos
+        </Link>
+      </div>
     </div>
   )
 }

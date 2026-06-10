@@ -3,41 +3,82 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { StockItemWithProduct } from '@/types/stock'
 import { useStockStore } from '@/store/useStockStore'
 
-type ItemDetailFormProps = {
-  item: StockItemWithProduct
+type StepperProps = {
+  label: string
+  hint?: string
+  value: number
+  onChange: (next: number) => void
 }
 
-function ItemDetailForm({ item }: ItemDetailFormProps) {
+function Stepper({ label, hint, value, onChange }: StepperProps) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-3">
+      <div>
+        <p className="font-bold">{label}</p>
+        {hint ? <p className="text-ink-soft text-xs">{hint}</p> : null}
+      </div>
+      <div className="border-line bg-paper flex shrink-0 items-center rounded-full border">
+        <button
+          type="button"
+          disabled={value <= 0}
+          onClick={() => onChange(Math.max(0, value - 1))}
+          className="grid size-11 place-items-center rounded-full text-xl font-bold transition active:scale-90 disabled:opacity-30"
+          aria-label={`Restar ${label.toLowerCase()}`}
+        >
+          −
+        </button>
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          value={value}
+          onChange={(e) => {
+            const n = Number(e.target.value)
+            onChange(Number.isNaN(n) ? 0 : Math.max(0, n))
+          }}
+          className="w-12 bg-transparent text-center font-mono text-lg font-semibold tabular-nums outline-none"
+          aria-label={label}
+        />
+        <button
+          type="button"
+          onClick={() => onChange(value + 1)}
+          className="bg-pine-800 text-card grid size-11 place-items-center rounded-full text-xl font-bold transition active:scale-90"
+          aria-label={`Sumar ${label.toLowerCase()}`}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ItemDetailForm({ item }: { item: StockItemWithProduct }) {
   const navigate = useNavigate()
-  const fetchStock = useStockStore((s) => s.fetchStock)
-  const setStockQuantity = useStockStore((s) => s.setStockQuantity)
-  const saveMinQty = useStockStore((s) => s.setMinQty)
+  const setQuantities = useStockStore((s) => s.setQuantities)
   const deleteItem = useStockStore((s) => s.deleteItem)
 
-  const [qty, setQty] = useState(String(item.quantity))
-  const [minQty, setMinQtyField] = useState(String(item.min_qty ?? 0))
+  const [qty, setQty] = useState(item.quantity)
+  const [minQty, setMinQty] = useState(item.min_qty ?? 0)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   const p = item.product
+  const dirty = qty !== item.quantity || minQty !== (item.min_qty ?? 0)
 
   async function handleSave() {
-    const q = Number(qty)
-    const m = Number(minQty)
-    if (Number.isNaN(q) || q < 0) return
-    if (Number.isNaN(m) || m < 0) return
     setSaving(true)
     try {
-      await setStockQuantity(item.id, q)
-      await saveMinQty(item.id, m)
-      await fetchStock()
+      await setQuantities(item.id, qty, minQty)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete() {
-    if (!confirm('¿Eliminar este producto del stock?')) return
+    if (!confirm(`¿Sacar «${p.name}» de la alacena?`)) return
     setDeleting(true)
     try {
       await deleteItem(item.id)
@@ -48,73 +89,83 @@ function ItemDetailForm({ item }: ItemDetailFormProps) {
   }
 
   return (
-    <>
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="aspect-[4/3] w-full bg-zinc-100">
+    <div className="animate-rise">
+      <div className="border-line bg-card overflow-hidden rounded-3xl border shadow-[0_1px_2px_rgba(32,42,24,0.06)]">
+        <div className="bg-pine-50 flex aspect-[5/3] w-full items-center justify-center">
           {p.image_url ? (
-            <img src={p.image_url} alt="" className="h-full w-full object-cover" />
+            <img
+              src={p.image_url}
+              alt=""
+              className="h-full w-full object-contain mix-blend-multiply"
+            />
           ) : (
-            <div className="flex h-full items-center justify-center text-zinc-400">Sin foto</div>
+            <span className="font-display text-pine-300 text-6xl italic select-none">
+              {p.name.trim().charAt(0).toUpperCase()}
+            </span>
           )}
         </div>
         <div className="p-5">
-          <h1 className="text-xl font-bold text-zinc-900">{p.name}</h1>
-          {p.brand ? <p className="text-zinc-600">{p.brand}</p> : null}
-          {p.category ? <p className="mt-1 text-sm text-zinc-500">{p.category}</p> : null}
-          <p className="mt-2 font-mono text-xs text-zinc-400">{p.barcode}</p>
+          <h1 className="font-display text-2xl leading-tight font-semibold italic">{p.name}</h1>
+          {p.brand ? <p className="text-ink-soft mt-0.5 font-medium">{p.brand}</p> : null}
+          <div className="text-ink-soft mt-3 flex flex-wrap items-center gap-2 text-xs">
+            {p.category ? (
+              <span className="bg-pine-100 text-pine-800 rounded-full px-2.5 py-1 font-bold">
+                {p.category}
+              </span>
+            ) : null}
+            {!p.barcode.startsWith('MANUAL-') ? (
+              <span className="border-line rounded-full border px-2.5 py-1 font-mono">
+                {p.barcode}
+              </span>
+            ) : (
+              <span className="border-line rounded-full border px-2.5 py-1 font-bold">
+                Cargado a mano
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="mt-6 space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <label className="block text-sm font-medium text-zinc-700">
-          Cantidad
-          <input
-            type="number"
-            min={0}
-            step={1}
-            inputMode="numeric"
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2 text-lg outline-none ring-green-700 focus:ring-2"
-          />
-        </label>
-        <label className="block text-sm font-medium text-zinc-700">
-          Alerta stock bajo (mín.)
-          <input
-            type="number"
-            min={0}
-            step={1}
-            inputMode="numeric"
-            value={minQty}
-            onChange={(e) => setMinQtyField(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2 text-lg outline-none ring-green-700 focus:ring-2"
-          />
-        </label>
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => void handleSave()}
-          className="w-full rounded-xl bg-green-800 py-3 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          {saving ? 'Guardando…' : 'Guardar cambios'}
-        </button>
+      <div className="border-line bg-card divide-line mt-4 divide-y rounded-3xl border px-5 py-2">
+        <Stepper
+          label="En la alacena"
+          hint={p.unit ? `Unidad: ${p.unit}` : undefined}
+          value={qty}
+          onChange={setQty}
+        />
+        <Stepper
+          label="Avisar cuando queden"
+          hint="0 desactiva el aviso de reposición"
+          value={minQty}
+          onChange={setMinQty}
+        />
       </div>
+
+      <button
+        type="button"
+        disabled={saving || !dirty}
+        onClick={() => void handleSave()}
+        className="bg-pine-800 text-card mt-4 w-full rounded-full py-4 text-base font-bold transition active:scale-[0.98] disabled:opacity-40"
+      >
+        {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar cambios'}
+      </button>
 
       <button
         type="button"
         disabled={deleting}
         onClick={() => void handleDelete()}
-        className="mt-4 w-full rounded-xl border border-red-300 py-3 text-sm font-semibold text-red-800 disabled:opacity-50"
+        className="text-clay-600 mt-3 w-full rounded-full py-3 text-sm font-bold disabled:opacity-50"
       >
-        {deleting ? 'Eliminando…' : 'Eliminar del stock'}
+        {deleting ? 'Sacando…' : 'Sacar de la alacena'}
       </button>
-    </>
+    </div>
   )
 }
 
 export function ItemDetail() {
   const { id } = useParams<{ id: string }>()
   const items = useStockStore((s) => s.items)
+  const loaded = useStockStore((s) => s.loaded)
   const fetchStock = useStockStore((s) => s.fetchStock)
 
   useEffect(() => {
@@ -123,37 +174,21 @@ export function ItemDetail() {
 
   const item = items.find((i) => i.id === id)
 
-  if (!id) {
-    return (
-      <div className="p-4">
-        <p className="text-sm text-red-700">ID inválido</p>
-        <Link to="/" className="mt-2 inline-block text-green-800 underline">
-          Volver
-        </Link>
-      </div>
-    )
-  }
-
-  if (!item) {
-    return (
-      <div className="p-4">
-        <p className="text-sm text-zinc-600">Cargando o no encontrado…</p>
-        <Link to="/" className="mt-2 inline-block text-green-800 underline">
-          Volver al inicio
-        </Link>
-      </div>
-    )
-  }
-
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col px-4 py-4 pb-24">
-      <header className="mb-4 flex items-center gap-2">
-        <Link to="/" className="text-sm font-medium text-green-900 underline-offset-2 hover:underline">
-          ← Volver
+    <div className="mx-auto flex min-h-full w-full max-w-xl flex-col px-4 pt-5 pb-10">
+      <header className="mb-4">
+        <Link to="/" className="text-pine-700 -ml-1 rounded-full px-2 py-1 text-sm font-bold">
+          ← Alacena
         </Link>
       </header>
 
-      <ItemDetailForm key={`${item.id}-${item.updated_at}`} item={item} />
+      {item ? (
+        <ItemDetailForm key={`${item.id}-${item.updated_at}`} item={item} />
+      ) : (
+        <p className="text-ink-soft mt-10 text-center text-sm">
+          {loaded ? 'No encontramos este producto.' : 'Cargando…'}
+        </p>
+      )}
     </div>
   )
 }
