@@ -48,20 +48,31 @@ export function Home() {
     <div className="flex min-h-full flex-col pb-28">
       <header className="border-line bg-paper/90 sticky top-0 z-20 border-b px-4 pt-5 pb-3 backdrop-blur">
         <div className="mx-auto w-full max-w-2xl">
-          <div className="flex items-end justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
             <h1 className="font-display text-3xl font-semibold tracking-tight italic">
               Alacena
             </h1>
-            <p className="text-ink-soft pb-1 text-sm">
-              {items.length} producto{items.length === 1 ? '' : 's'}
+            <Link
+              to="/lista"
+              className="border-line bg-card text-pine-800 flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-bold transition active:scale-95"
+            >
+              <span aria-hidden>🛒</span> Lista
               {lowCount > 0 ? (
-                <>
-                  {' · '}
-                  <span className="text-clay-600 font-semibold">{lowCount} por reponer</span>
-                </>
+                <span className="bg-clay-600 text-card ml-0.5 rounded-full px-1.5 text-xs font-bold tabular-nums">
+                  {lowCount}
+                </span>
               ) : null}
-            </p>
+            </Link>
           </div>
+          <p className="text-ink-soft mt-1 text-sm">
+            {items.length} producto{items.length === 1 ? '' : 's'}
+            {lowCount > 0 ? (
+              <>
+                {' · '}
+                <span className="text-clay-600 font-semibold">{lowCount} por reponer</span>
+              </>
+            ) : null}
+          </p>
 
           <div className="mt-3 flex gap-2">
             <input
