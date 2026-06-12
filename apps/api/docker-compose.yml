@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: alacena-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: alacena
+      POSTGRES_PASSWORD: alacena
+      POSTGRES_DB: alacena
+    ports:
+      - "5433:5432"
+    volumes:
+      - alacena-pgdata:/var/lib/postgresql/data
+
+volumes:
+  alacena-pgdata:
