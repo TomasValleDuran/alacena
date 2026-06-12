@@ -58,13 +58,13 @@ function ItemDetailForm({ item }: { item: StockItemWithProduct }) {
   const deleteItem = useStockStore((s) => s.deleteItem)
 
   const [qty, setQty] = useState(item.quantity)
-  const [minQty, setMinQty] = useState(item.min_qty ?? 0)
+  const [minQty, setMinQty] = useState(item.minQty ?? 0)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [saved, setSaved] = useState(false)
 
   const p = item.product
-  const dirty = qty !== item.quantity || minQty !== (item.min_qty ?? 0)
+  const dirty = qty !== item.quantity || minQty !== (item.minQty ?? 0)
 
   async function handleSave() {
     setSaving(true)
@@ -92,9 +92,9 @@ function ItemDetailForm({ item }: { item: StockItemWithProduct }) {
     <div className="animate-rise">
       <div className="border-line bg-card overflow-hidden rounded-3xl border shadow-[0_1px_2px_rgba(32,42,24,0.06)]">
         <div className="bg-pine-50 flex aspect-[5/3] w-full items-center justify-center">
-          {p.image_url ? (
+          {p.imageUrl ? (
             <img
-              src={p.image_url}
+              src={p.imageUrl}
               alt=""
               className="h-full w-full object-contain mix-blend-multiply"
             />
@@ -183,7 +183,7 @@ export function ItemDetail() {
       </header>
 
       {item ? (
-        <ItemDetailForm key={`${item.id}-${item.updated_at}`} item={item} />
+        <ItemDetailForm key={`${item.id}-${item.updatedAt}`} item={item} />
       ) : (
         <p className="text-ink-soft mt-10 text-center text-sm">
           {loaded ? 'No encontramos este producto.' : 'Cargando…'}

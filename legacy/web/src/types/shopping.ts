@@ -3,12 +3,12 @@ import type { Product } from '@/types/product'
 export type ShoppingItem = {
   id: string
   /** linked catalog product, or null for a free-text item */
-  product_id: string | null
-  /** free-text name; ignored when product_id is set (use product.name) */
+  productId: string | null
+  /** free-text name; ignored when productId is set (use product.name) */
   name: string | null
   quantity: number
   checked: boolean
-  created_at: string
+  createdAt: string
   product: Product | null
 }
 

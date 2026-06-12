@@ -11,9 +11,9 @@ export function ProductThumb({ product, className = '' }: ProductThumbProps) {
     <div
       className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-pine-50 ${className}`}
     >
-      {product.image_url ? (
+      {product.imageUrl ? (
         <img
-          src={product.image_url}
+          src={product.imageUrl}
           alt=""
           className="h-full w-full object-contain mix-blend-multiply"
           loading="lazy"

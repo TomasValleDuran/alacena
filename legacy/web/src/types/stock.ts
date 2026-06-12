@@ -2,10 +2,10 @@ import type { Product } from '@/types/product'
 
 export type StockItem = {
   id: string
-  product_id: string
+  productId: string
   quantity: number
-  min_qty: number | null
-  updated_at: string
+  minQty: number | null
+  updatedAt: string
 }
 
 export type StockItemWithProduct = StockItem & {

@@ -1,34 +1,17 @@
 import { create } from 'zustand'
-import type { Product } from '@/types/product'
 import type { ShoppingItem } from '@/types/shopping'
-import { supabase } from '@/lib/supabase'
-import { useStockStore } from '@/store/useStockStore'
-
-type ShoppingRow = {
-  id: string
-  product_id: string | null
-  name: string | null
-  quantity: string | number
-  checked: boolean
-  created_at: string
-  product: Product | null
-}
+import { api, type ShoppingRow } from '@/lib/api'
 
 function normalize(row: ShoppingRow): ShoppingItem {
   return {
     id: row.id,
-    product_id: row.product_id,
+    productId: row.productId,
     name: row.name,
     quantity: Number(row.quantity),
     checked: row.checked,
-    created_at: row.created_at,
+    createdAt: row.createdAt,
     product: row.product ?? null,
   }
-}
-
-/** Items at or below their reorder threshold (or out of stock). */
-function isLow(quantity: number, minQty: number | null): boolean {
-  return quantity <= 0 || (minQty != null && minQty > 0 && quantity <= minQty)
 }
 
 type ShoppingState = {
@@ -52,65 +35,34 @@ export const useShoppingStore = create<ShoppingState>((set, get) => ({
   error: null,
 
   fetchList: async () => {
-    const { data, error } = await supabase
-      .from('shopping_list')
-      .select('id, product_id, name, quantity, checked, created_at, product:products (*)')
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      set({ loaded: true, error: error.message })
-      return
+    try {
+      const rows = await api.getShopping()
+      set({ items: rows.map(normalize), loaded: true, error: null })
+    } catch (e) {
+      set({ loaded: true, error: e instanceof Error ? e.message : 'No se pudo cargar la lista' })
     }
-    const rows = (data ?? []) as unknown as ShoppingRow[]
-    set({ items: rows.map(normalize), loaded: true, error: null })
   },
 
   addManual: async (name: string, quantity: number) => {
     const trimmed = name.trim()
     if (!trimmed) return
-    const { error } = await supabase.from('shopping_list').insert({
-      name: trimmed,
-      quantity: Math.max(1, quantity),
-      checked: false,
-    })
-    if (error) {
-      set({ error: error.message })
-      return
+    try {
+      await api.addManualShopping(trimmed, Math.max(1, quantity))
+      await get().fetchList()
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'No se pudo agregar' })
     }
-    await get().fetchList()
   },
 
   generateFromLowStock: async () => {
-    // make sure we're reasoning over fresh stock
-    const stock = useStockStore.getState()
-    if (!stock.loaded) await stock.fetchStock()
-    const stockItems = useStockStore.getState().items
-
-    const onList = new Set(
-      get()
-        .items.map((i) => i.product_id)
-        .filter((id): id is string => id != null),
-    )
-
-    const rows = stockItems
-      .filter((i) => isLow(i.quantity, i.min_qty) && !onList.has(i.product_id))
-      .map((i) => ({
-        product_id: i.product_id,
-        // suggest enough to reach the threshold, at least 1
-        quantity:
-          i.min_qty != null && i.min_qty > 0 ? Math.max(1, i.min_qty - i.quantity) : 1,
-        checked: false,
-      }))
-
-    if (rows.length === 0) return 0
-
-    const { error } = await supabase.from('shopping_list').insert(rows)
-    if (error) {
-      set({ error: error.message })
+    try {
+      const added = await api.generateShopping()
+      if (added > 0) await get().fetchList()
+      return added
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'No se pudo generar la lista' })
       return 0
     }
-    await get().fetchList()
-    return rows.length
   },
 
   setQuantity: async (id: string, quantity: number) => {
@@ -121,12 +73,10 @@ export const useShoppingStore = create<ShoppingState>((set, get) => ({
     // optimistic so the stepper feels instant
     set({ items: get().items.map((i) => (i.id === id ? { ...i, quantity: next } : i)) })
 
-    const { error } = await supabase
-      .from('shopping_list')
-      .update({ quantity: next })
-      .eq('id', id)
-    if (error) {
-      set({ error: error.message })
+    try {
+      await api.patchShopping(id, { quantity: next })
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'No se pudo actualizar' })
       await get().fetchList()
     }
   },
@@ -138,12 +88,10 @@ export const useShoppingStore = create<ShoppingState>((set, get) => ({
 
     set({ items: get().items.map((i) => (i.id === id ? { ...i, checked: next } : i)) })
 
-    const { error } = await supabase
-      .from('shopping_list')
-      .update({ checked: next })
-      .eq('id', id)
-    if (error) {
-      set({ error: error.message })
+    try {
+      await api.patchShopping(id, { checked: next })
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'No se pudo actualizar' })
       await get().fetchList()
     }
   },
@@ -151,18 +99,20 @@ export const useShoppingStore = create<ShoppingState>((set, get) => ({
   remove: async (id: string) => {
     const prev = get().items
     set({ items: prev.filter((i) => i.id !== id) })
-    const { error } = await supabase.from('shopping_list').delete().eq('id', id)
-    if (error) {
-      set({ error: error.message, items: prev })
+    try {
+      await api.deleteShopping(id)
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'No se pudo eliminar', items: prev })
     }
   },
 
   clearChecked: async () => {
     const prev = get().items
     set({ items: prev.filter((i) => !i.checked) })
-    const { error } = await supabase.from('shopping_list').delete().eq('checked', true)
-    if (error) {
-      set({ error: error.message })
+    try {
+      await api.clearCheckedShopping()
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'No se pudo limpiar' })
       await get().fetchList()
     }
   },

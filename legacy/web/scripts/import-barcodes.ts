@@ -1,9 +1,9 @@
 /**
  * Bulk-import barcodes into the product catalog.
  *
- * Reads a CSV of barcodes, looks each one up with the SAME resolver the app
- * uses (pricely.ar first, Open Food Facts as fallback) and inserts any new
- * ones into the `products` table. Catalog only — it never touches stock.
+ * Reads a CSV of barcodes and POSTs each one to the backend's resolve endpoint,
+ * which looks it up (pricely.ar first, Open Food Facts as fallback) and caches
+ * any new ones in the `products` table. Catalog only — it never touches stock.
  *
  * Usage:
  *   npm run import:barcodes -- path/to/barcodes.csv
@@ -12,15 +12,12 @@
  * CSV: one barcode per line. A header row "barcode" is ignored, as are blank
  * lines and lines starting with "#". Extra columns are ignored.
  *
- * Credentials are read from .env.local (VITE_SUPABASE_URL,
- * VITE_SUPABASE_PUBLISHABLE_KEY) — the same file the app uses.
+ * Reads VITE_API_URL from .env.local (same file the app uses); override with
+ * the API_URL env var. Defaults to http://localhost:3001.
  */
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createClient } from '@supabase/supabase-js'
-import { lookupPricely } from '../src/lib/pricely.ts'
-import { lookupBarcode } from '../src/lib/openFoodFacts.ts'
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -92,85 +89,47 @@ async function main() {
     process.exit(1)
   }
 
-  const url = process.env.VITE_SUPABASE_URL
-  const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
-  if (!url || !key) {
-    console.error(
-      'Missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY (looked in .env.local).',
-    )
-    process.exit(1)
-  }
-  const supabase = createClient(url, key)
+  const apiUrl = process.env.API_URL ?? process.env.VITE_API_URL ?? 'http://localhost:3001'
 
   const barcodes = readBarcodes(fullPath)
-  console.log(`\nFound ${barcodes.length} unique barcode(s) in ${csvPath}\n`)
+  console.log(`\nFound ${barcodes.length} unique barcode(s) in ${csvPath}`)
+  console.log(`Resolving via ${apiUrl}\n`)
 
-  let added = 0
-  let existed = 0
+  let resolved = 0
   const notFound: string[] = []
 
   for (let i = 0; i < barcodes.length; i++) {
     const barcode = barcodes[i]!
     const prefix = `[${i + 1}/${barcodes.length}] ${barcode}`
 
-    const { data: cached, error: findErr } = await supabase
-      .from('products')
-      .select('id, name')
-      .eq('barcode', barcode)
-      .maybeSingle()
-    if (findErr) {
-      console.error(`${prefix} — db error: ${findErr.message}`)
-      continue
-    }
-    if (cached) {
-      existed++
-      console.log(`${prefix} — already in catalog (${(cached as { name: string }).name})`)
-      continue
-    }
+    try {
+      const res = await fetch(`${apiUrl}/api/products/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barcode }),
+      })
 
-    let source = 'pricely'
-    let found = await lookupPricely(barcode)
-    if (!found) {
-      source = 'openfoodfacts'
-      found = await lookupBarcode(barcode)
-    }
-
-    if (!found) {
-      notFound.push(barcode)
-      console.log(`${prefix} — not found`)
-      await sleep(delay)
-      continue
-    }
-
-    const { error: insErr } = await supabase.from('products').insert({
-      barcode: found.barcode,
-      name: found.name,
-      brand: found.brand ?? null,
-      image_url: found.image_url ?? null,
-      category: found.category ?? null,
-      unit: found.unit ?? null,
-    })
-
-    if (insErr) {
-      // 23505 = unique violation: inserted by another run between our check and insert
-      if (insErr.code === '23505') {
-        existed++
-        console.log(`${prefix} — already in catalog`)
+      if (res.status === 404) {
+        notFound.push(barcode)
+        console.log(`${prefix} — not found`)
+      } else if (res.ok) {
+        const data = (await res.json()) as { product: { name: string } }
+        resolved++
+        console.log(`${prefix} — ok "${data.product.name}"`)
       } else {
-        console.error(`${prefix} — insert error: ${insErr.message}`)
+        const data = (await res.json().catch(() => null)) as { error?: string } | null
+        console.error(`${prefix} — error: ${data?.error ?? res.status}`)
       }
-    } else {
-      added++
-      console.log(`${prefix} — added "${found.name}" (${source})`)
+    } catch (e) {
+      console.error(`${prefix} — request failed: ${e instanceof Error ? e.message : e}`)
     }
 
     await sleep(delay)
   }
 
   console.log('\n────────────────────────────')
-  console.log(`Added:      ${added}`)
-  console.log(`Already in: ${existed}`)
-  console.log(`Not found:  ${notFound.length}`)
+  console.log(`Resolved (added or cached): ${resolved}`)
+  console.log(`Not found:                  ${notFound.length}`)
   if (notFound.length > 0) {
     console.log('\nNot found (add these by hand in the app):')
     for (const b of notFound) console.log(`  ${b}`)

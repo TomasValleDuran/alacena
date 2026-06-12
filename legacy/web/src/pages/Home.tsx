@@ -21,7 +21,7 @@ export function Home() {
     () =>
       items.filter(
         (i) =>
-          i.quantity <= 0 || (i.min_qty != null && i.min_qty > 0 && i.quantity <= i.min_qty),
+          i.quantity <= 0 || (i.minQty != null && i.minQty > 0 && i.quantity <= i.minQty),
       ).length,
     [items],
   )
@@ -32,7 +32,7 @@ export function Home() {
       .filter((i) => {
         if (filter === 'low') {
           const low =
-            i.quantity <= 0 || (i.min_qty != null && i.min_qty > 0 && i.quantity <= i.min_qty)
+            i.quantity <= 0 || (i.minQty != null && i.minQty > 0 && i.quantity <= i.minQty)
           if (!low) return false
         }
         if (!q) return true

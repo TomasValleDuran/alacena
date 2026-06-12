@@ -10,7 +10,7 @@ type StockRowProps = {
 export function StockRow({ item }: StockRowProps) {
   const adjustItem = useStockStore((s) => s.adjustItem)
   const empty = item.quantity <= 0
-  const low = !empty && item.min_qty != null && item.min_qty > 0 && item.quantity <= item.min_qty
+  const low = !empty && item.minQty != null && item.minQty > 0 && item.quantity <= item.minQty
 
   return (
     <li className="animate-rise flex items-center gap-3 rounded-2xl border border-line bg-card p-3 shadow-[0_1px_2px_rgba(32,42,24,0.06)]">

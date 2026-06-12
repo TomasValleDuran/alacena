@@ -3,17 +3,17 @@ export type Product = {
   barcode: string
   name: string
   brand: string | null
-  image_url: string | null
+  imageUrl: string | null
   category: string | null
   unit: string | null
-  created_at: string
+  createdAt: string
 }
 
 export type ProductInsert = {
   barcode: string
   name: string
   brand?: string | null
-  image_url?: string | null
+  imageUrl?: string | null
   category?: string | null
   unit?: string | null
 }

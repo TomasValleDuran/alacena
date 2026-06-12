@@ -35,8 +35,8 @@ export function ShoppingList() {
 
   // how many low-stock products aren't on the list yet
   const missingCount = useMemo(() => {
-    const onList = new Set(items.map((i) => i.product_id).filter(Boolean))
-    return stockItems.filter((i) => isLow(i.quantity, i.min_qty) && !onList.has(i.product_id))
+    const onList = new Set(items.map((i) => i.productId).filter(Boolean))
+    return stockItems.filter((i) => isLow(i.quantity, i.minQty) && !onList.has(i.productId))
       .length
   }, [items, stockItems])
 

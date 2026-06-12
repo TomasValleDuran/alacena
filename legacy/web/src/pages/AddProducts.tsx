@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { FormEvent } from 'react'
 import type { Product } from '@/types/product'
-import { supabase } from '@/lib/supabase'
-import { lookupBarcode } from '@/lib/openFoodFacts'
-import { lookupPricely } from '@/lib/pricely'
+import { api } from '@/lib/api'
 import { isPlausibleRetailCode } from '@/lib/barcode'
 import { useStockStore } from '@/store/useStockStore'
 import { ProductThumb } from '@/components/ProductThumb'
@@ -82,19 +80,8 @@ export function AddProducts() {
   async function resolveOne(barcode: string) {
     setBusyCode(barcode)
     try {
-      const { data: cached, error: findErr } = await supabase
-        .from('products')
-        .select('*')
-        .eq('barcode', barcode)
-        .maybeSingle()
-      if (findErr) throw new Error(findErr.message)
-
-      let product = cached as Product | null
-      if (!product) {
-        // pricely.ar first (Argentine catalog), Open Food Facts as fallback
-        const found = (await lookupPricely(barcode)) ?? (await lookupBarcode(barcode))
-        if (found) product = await upsertProduct(found)
-      }
+      // backend resolves: local cache → pricely.ar → Open Food Facts, and caches the hit
+      const product = await api.resolveProduct(barcode)
 
       if (product) {
         await addAndLog(product, qtyPerScan)
