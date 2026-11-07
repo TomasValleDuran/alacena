@@ -21,12 +21,35 @@ shopping.get('/', async (_req, res, next) => {
   }
 })
 
-/** Free-text item not tied to a catalog product. */
+/**
+ * Add an item. Either `{ productId }` (a catalog product — e.g. scanned on the
+ * phone) or `{ name }` (free text). Product rows stay one-per-product: if it's
+ * already on the list the existing row is returned unchanged (200, not 201).
+ */
 shopping.post('/', async (req, res, next) => {
   try {
+    const quantity = Math.max(1, Number(req.body?.quantity) || 1)
+    const productId = req.body?.productId ? String(req.body.productId) : null
+
+    if (productId) {
+      const existing = await prisma.shoppingItem.findFirst({
+        where: { productId },
+        include: { product: true },
+      })
+      if (existing) return res.json(serializeShoppingItem(existing))
+
+      const product = await prisma.product.findUnique({ where: { id: productId } })
+      if (!product) return res.status(404).json({ error: 'Producto no encontrado' })
+
+      const item = await prisma.shoppingItem.create({
+        data: { productId, quantity, checked: false },
+        include: { product: true },
+      })
+      return res.status(201).json(serializeShoppingItem(item))
+    }
+
     const name = String(req.body?.name ?? '').trim()
     if (!name) return res.status(400).json({ error: 'Nombre requerido' })
-    const quantity = Math.max(1, Number(req.body?.quantity) || 1)
 
     const item = await prisma.shoppingItem.create({
       data: { name, quantity, checked: false },

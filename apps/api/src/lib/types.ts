@@ -6,4 +6,7 @@ export type ProductInsert = {
   imageUrl?: string | null
   category?: string | null
   unit?: string | null
+  description?: string | null
+  blurHash?: string | null
+  categories?: string[]
 }

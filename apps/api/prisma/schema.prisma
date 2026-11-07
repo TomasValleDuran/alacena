@@ -18,6 +18,11 @@ model Product {
   imageUrl  String?  @map("image_url")
   category  String?
   unit      String?
+  // pricely extras: description and a BlurHash image placeholder come with the
+  // lookup; categories are filled lazily by /products/:id/insights
+  description String?
+  blurHash    String?  @map("blur_hash")
+  categories  String[] @default([])
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   stockItem    StockItem?

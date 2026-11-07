@@ -19,6 +19,9 @@ export function serializeProduct(p: Product) {
     imageUrl: p.imageUrl,
     category: p.category,
     unit: p.unit,
+    description: p.description,
+    blurHash: p.blurHash,
+    categories: p.categories,
     createdAt: p.createdAt.toISOString(),
   }
 }
