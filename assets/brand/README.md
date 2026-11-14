@@ -1,62 +1,54 @@
 # Alacena: icon and splash assets
 
-Mark: a cupboard (top, plus two doors with cut-out handles) drawn in a 100 × 100 unit box. Its bounding box is 76 × 72 units, centred on (50, 50).
+Source of truth for the Alacena cupboard mark: the icon and splash art, the animated splash layers and the timing spec. `apps/app/assets/images/` holds copies of some of these files for the Expo config; edit them here, then copy them there.
 
-## Files
+## The mark
+
+A cupboard (a cornice across the top, plus two doors with cut-out handles) drawn in a 100 × 100 unit box. Its bounding box is 76 × 72 units, centred on (50, 50).
+
+Two colours: green `#2E6A3D` and off-white `#F6F5F0`. The dark variants use `#8CCB99` (mark) and `#1B1E19` or `#10120F` (backdrop).
+
+## Folders
+
+| Path | Contents |
+|---|---|
+| `svg/` | SVG sources for every PNG, plus `mark.svg` (master) |
+| `png/` | Icon and splash PNGs (listed below) |
+| `ios-layers/` | Layers for Icon Composer / Liquid Glass: background, doors and cornice on the same 1024 canvas. Dark-mode versions of the doors and cornice are included |
+| `splash-layers/{light,dark}/` | Animated layers, each with a tight viewBox, positioned in the 100 × 100 pt box (1 unit = 1 pt). Each set is complete |
+| `lottie/alacena-splash-{light,dark}.json` | 100 × 100, 60 fps, 60 frames. Mark only (doors as a 2D squash); the background fade is not included |
+| `splash-timing.json` | Machine-readable timing spec |
+
+### PNG files
 
 | File | What it is |
 |---|---|
-| `png/icon.png` | 1024², opaque, square corners. #F6F5F0 mark on #2E6A3D, mark at 59 % of the width |
-| `png/ios-icon-light.png` | Same as `icon.png` |
-| `png/ios-icon-dark.png` | #8CCB99 mark on a transparent background (iOS supplies the dark backdrop) |
-| `png/ios-icon-dark-filled.png` | Fallback for the dark icon: the mark on #1B1E19 |
-| `png/ios-icon-tinted.png` | Grayscale mark on transparent. The top is white and the doors #E0E0E0, so the layers still read once iOS applies the tint |
-| `ios-layers/*.svg` | Layers for Icon Composer / Liquid Glass: background, doors and top on the same 1024 canvas. Dark-mode versions of the doors and top are included |
-| `png/android-icon-foreground.png` | Transparent. Mark at 41 % of the layer; its farthest point is 280 px from the centre (the 66 % safe circle has a 338 px radius) |
-| `png/android-icon-background.png` | Flat #2E6A3D |
-| `png/android-icon-monochrome.png` | White silhouette on transparent |
-| `png/splash-icon.png` / `-dark.png` | The mark alone on transparent, filling the full width, so `imageWidth: 76` gives a mark 76 pt wide |
-| `svg/` | SVG sources for every PNG, plus `mark.svg` (master) |
-| `splash-layers/{light,dark}/` | Animated layers, each with a tight viewBox, positioned in the 100 × 100 pt box (1 unit = 1 pt) |
-| `splash-timing.json` | Machine-readable timing spec |
-| `rn/AnimatedSplash.tsx` | Reanimated 3 implementation of the spec, including reduced motion |
-| `lottie/alacena-splash-{light,dark}.json` | Bonus: 100 × 100, 60 fps, 60 frames. Mark only (doors as a 2D squash); the background fade stays in RN |
+| `icon.png` | 1024², opaque, square corners. #F6F5F0 mark on #2E6A3D, mark at 59 % of the width |
+| `ios-icon-light.png` | Byte-identical to `icon.png`. Kept under its own name because `apps/app/app.json` references it by that name |
+| `ios-icon-dark.png` | #8CCB99 mark on a transparent background (iOS supplies the dark backdrop) |
+| `ios-icon-dark-filled.png` | Fallback for the dark icon: the mark on #1B1E19 |
+| `ios-icon-tinted.png` | Grayscale mark on transparent. The cornice is white and the doors #E0E0E0, so the layers still read once iOS applies the tint |
+| `android-icon-foreground.png` | Transparent. Mark at 41 % of the layer; its farthest point is 280 px from the centre (the 66 % safe circle has a 338 px radius) |
+| `android-icon-background.png` | Flat #2E6A3D |
+| `android-icon-monochrome.png` | White silhouette on transparent |
+| `splash-icon.png` / `splash-icon-dark.png` | The mark alone on transparent, filling the full width, so `imageWidth: 76` gives a mark 76 pt wide |
 
-## app.json (Expo)
+## Copies used by the app
 
-```json
-{
-  "expo": {
-    "icon": "./assets/icon.png",
-    "ios": {
-      "icon": {
-        "light": "./assets/ios-icon-light.png",
-        "dark": "./assets/ios-icon-dark.png",
-        "tinted": "./assets/ios-icon-tinted.png"
-      }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png",
-        "backgroundColor": "#2E6A3D"
-      }
-    },
-    "plugins": [
-      ["expo-splash-screen", {
-        "image": "./assets/splash-icon.png",
-        "imageWidth": 76,
-        "resizeMode": "contain",
-        "backgroundColor": "#F6F5F0",
-        "dark": { "image": "./assets/splash-icon-dark.png", "backgroundColor": "#10120F" }
-      }]
-    ]
-  }
-}
-```
+`apps/app/app.json` reads these from `apps/app/assets/images/`, which holds byte-identical copies of the files above:
 
-For iOS 26 Liquid Glass, build an `.icon` in Icon Composer from `ios-layers/`. Use the background as the fill, then put the doors and the top in separate groups, top in front. Then point `ios.icon` at that `.icon` file (supported from Expo SDK 54).
+- `icon.png`
+- `ios-icon-light.png`, `ios-icon-dark.png`, `ios-icon-tinted.png`
+- `android-icon-foreground.png`, `android-icon-background.png`, `android-icon-monochrome.png`
+- `splash-icon.png`, `splash-icon-dark.png`
+
+`apps/app/assets/images/favicon.png` has no counterpart in this folder.
+
+Duplicates kept on purpose: `svg/android-icon-background.svg` and `ios-layers/0-background.svg` are identical, but the Icon Composer set needs its own complete folder. `splash-layers/light/splash-layer-shelf.svg` and `splash-layers/dark/splash-layer-shelf.svg` are identical, but each splash set must stay complete.
+
+The app's animated splash is `apps/app/src/components/animated-splash.tsx`. The timing below is the spec it is built from.
+
+For iOS 26 Liquid Glass, build an `.icon` in Icon Composer from `ios-layers/`. Use the background as the fill, then put the doors and the cornice in separate groups, cornice in front. Then point `ios.icon` at that `.icon` file (supported from Expo SDK 54).
 
 ## Splash timing (ms)
 
