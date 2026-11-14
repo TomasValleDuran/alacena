@@ -14,7 +14,7 @@ export function product(over: Partial<Product> = {}): Product {
   }
 }
 
-export function stockRow(over: Partial<StockRow> & { product?: Partial<Product> } = {}): StockRow {
+export function stockRow(over: Omit<Partial<StockRow>, 'product'> & { product?: Partial<Product> } = {}): StockRow {
   const { product: p, ...rest } = over
   const prod = product({ id: rest.productId ?? 'p1', ...p })
   return {
