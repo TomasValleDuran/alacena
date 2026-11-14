@@ -1,0 +1,140 @@
+[
+  {
+    "code": "7790070410122",
+    "valid": true,
+    "note": "valid EAN-13 (Argentine 779 prefix)"
+  },
+  {
+    "code": "5901234123457",
+    "valid": true,
+    "note": "valid EAN-13"
+  },
+  {
+    "code": "4006381333931",
+    "valid": true,
+    "note": "valid EAN-13"
+  },
+  {
+    "code": "9780201379624",
+    "valid": true,
+    "note": "valid EAN-13 (ISBN, 978 prefix)"
+  },
+  {
+    "code": "7790070410123",
+    "valid": false,
+    "note": "EAN-13 with wrong check digit (last digit off by one)"
+  },
+  {
+    "code": "7790070410129",
+    "valid": false,
+    "note": "EAN-13 with wrong check digit"
+  },
+  {
+    "code": "7709070410122",
+    "valid": false,
+    "note": "EAN-13 with two adjacent digits swapped (transposition caught)"
+  },
+  {
+    "code": "0000000000000",
+    "valid": true,
+    "note": "EAN-13 of all zeros: check digit 0 is correct"
+  },
+  {
+    "code": "73513537",
+    "valid": true,
+    "note": "valid EAN-8"
+  },
+  {
+    "code": "96385074",
+    "valid": true,
+    "note": "valid EAN-8"
+  },
+  {
+    "code": "55123457",
+    "valid": true,
+    "note": "valid EAN-8"
+  },
+  {
+    "code": "73513538",
+    "valid": false,
+    "note": "EAN-8 with wrong check digit"
+  },
+  {
+    "code": "036000291452",
+    "valid": true,
+    "note": "valid UPC-A (12 digits)"
+  },
+  {
+    "code": "012345678905",
+    "valid": true,
+    "note": "valid UPC-A (12 digits)"
+  },
+  {
+    "code": "072253000205",
+    "valid": true,
+    "note": "valid UPC-A (12 digits)"
+  },
+  {
+    "code": "036000291453",
+    "valid": false,
+    "note": "UPC-A with wrong check digit"
+  },
+  {
+    "code": "0036000291452",
+    "valid": true,
+    "note": "UPC-A as iOS reports it: EAN-13 with a leading 0; same check digit, still valid",
+    "normalized": "036000291452"
+  },
+  {
+    "code": "0012345678905",
+    "valid": true,
+    "note": "second UPC-A read as EAN-13 with leading 0",
+    "normalized": "012345678905"
+  },
+  {
+    "code": "0036000291453",
+    "valid": false,
+    "note": "leading-0 EAN-13 whose UPC-A check digit is wrong",
+    "normalized": "036000291453"
+  },
+  {
+    "code": "1234567",
+    "valid": true,
+    "note": "7 digits: not an EAN/UPC length, not judged, passes untouched"
+  },
+  {
+    "code": "779007041012",
+    "valid": false,
+    "note": "12 digits, so judged as UPC-A: the EAN-13 body without its check digit fails"
+  },
+  {
+    "code": "77900704101222",
+    "valid": true,
+    "note": "14 digits (GTIN-14): not judged, passes untouched"
+  },
+  {
+    "code": "123456789",
+    "valid": true,
+    "note": "9 digits: not judged, passes untouched"
+  },
+  {
+    "code": "MANUAL-1731600000000",
+    "valid": true,
+    "note": "manual-entry code: non-numeric, passes untouched"
+  },
+  {
+    "code": "77900704101A2",
+    "valid": true,
+    "note": "13 chars with a letter: non-numeric, passes untouched"
+  },
+  {
+    "code": "7790070 10122",
+    "valid": true,
+    "note": "contains a space: non-numeric, passes untouched"
+  },
+  {
+    "code": "",
+    "valid": true,
+    "note": "empty string: non-numeric pattern fails to match, passes untouched (callers reject short codes separately)"
+  }
+]
