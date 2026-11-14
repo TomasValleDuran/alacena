@@ -1,7 +1,7 @@
 # Pinned project name: this file used to live in a folder called back-alacena,
 # so the existing alacena-db container and alacena-pgdata volume belong to the
 # "back-alacena" project. Keeping the name reuses them instead of conflicting.
-name: back-alacena
+name: backend
 
 services:
   db:
