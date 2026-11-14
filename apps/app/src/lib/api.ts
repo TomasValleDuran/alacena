@@ -14,8 +14,12 @@ export class ApiError extends Error {
 const TIMEOUT_MS = 12_000
 
 /** fetch → JSON, with a timeout and Spanish messages the UI can show as-is. */
-async function call(path: string, init?: RequestInit): Promise<{ status: number; data: any }> {
-  const base = useServer.getState().apiUrl
+async function call(
+  path: string,
+  init?: RequestInit,
+  baseOverride?: string,
+): Promise<{ status: number; data: any }> {
+  const base = baseOverride ?? useServer.getState().apiUrl
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   let res: Response
@@ -55,8 +59,8 @@ export const api = {
   async health(baseOverride?: string): Promise<boolean> {
     if (baseOverride) {
       try {
-        const res = await fetch(`${baseOverride}/health`)
-        return res.ok
+        const { status } = await call('/health', undefined, baseOverride)
+        return status >= 200 && status < 300
       } catch {
         return false
       }
@@ -89,7 +93,7 @@ export const api = {
     request<{ quantity: number }>('/stock/add', json('POST', { productId, delta })).then(
       (r) => r.quantity,
     ),
-  patchStock: (id: string, patch: { quantity?: number; minQty?: number }) =>
+  patchStock: (id: string, patch: { minQty?: number }) =>
     request<StockRow>(`/stock/${id}`, json('PATCH', patch)),
   deleteStock: (id: string) => request<void>(`/stock/${id}`, json('DELETE')),
 
