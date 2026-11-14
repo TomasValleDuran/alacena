@@ -40,4 +40,4 @@ python3 pricely_mirror.py crawl                 # prices/categories/images for t
 
 ## Decoding note
 
-API bodies are obfuscated: the body is base64 of the JSON, reversed, with one junk character, which ends up at the front after reversing. To decode: reverse, drop the first character, base64-decode, then parse the JSON. The same decoding is in `back-alacena/src/lib/pricely.ts`.
+API bodies are obfuscated: the body is base64 of the JSON, reversed, with one junk character, which ends up at the front after reversing. To decode: reverse, drop the first character, base64-decode, then parse the JSON. The same decoding is in `apps/api/src/lib/pricely.ts`.
