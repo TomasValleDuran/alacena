@@ -16,3 +16,6 @@ export function isPlausibleRetailCode(raw: string): boolean {
   const sum = digits.reverse().reduce((acc, d, i) => acc + d * (i % 2 === 0 ? 3 : 1), 0)
   return (10 - (sum % 10)) % 10 === check
 }
+
+/** Shape of a barcode pricely can look up (6-14 digits). */
+export const isEan = (barcode: string) => /^\d{6,14}$/.test(barcode)

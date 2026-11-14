@@ -28,7 +28,6 @@ model Product {
   stockItem    StockItem?
   shoppingRows ShoppingItem[]
 
-  @@index([barcode])
   @@map("products")
 }
 

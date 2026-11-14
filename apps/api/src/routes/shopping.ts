@@ -1,6 +1,9 @@
 import { Router } from 'express'
+import { Prisma } from '@prisma/client'
+import { z } from 'zod'
 import { prisma } from '../db.js'
 import { serializeShoppingItem } from '../serialize.js'
+import { HttpError, idParams, parse, uuid } from '../http.js'
 
 export const shopping = Router()
 
@@ -9,16 +12,24 @@ function isLow(quantity: number, minQty: number | null): boolean {
   return quantity <= 0 || (minQty != null && minQty > 0 && quantity <= minQty)
 }
 
-shopping.get('/', async (_req, res, next) => {
-  try {
-    const items = await prisma.shoppingItem.findMany({
-      include: { product: true },
-      orderBy: { createdAt: 'asc' },
-    })
-    res.json(items.map(serializeShoppingItem))
-  } catch (e) {
-    next(e)
-  }
+/** Shopping quantities are whole units >= 1: rounded, then clamped. */
+const quantitySchema = z
+  .number({ error: 'Cantidad inválida' })
+  .finite('Cantidad inválida')
+  .transform((n) => Math.max(1, Math.round(n)))
+
+shopping.get('/', async (_req, res) => {
+  const items = await prisma.shoppingItem.findMany({
+    include: { product: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  res.json(items.map(serializeShoppingItem))
+})
+
+const addBody = z.object({
+  productId: uuid('productId inválido').nullish(),
+  name: z.string({ error: 'Nombre requerido' }).trim().nullish(),
+  quantity: quantitySchema.nullish(),
 })
 
 /**
@@ -26,105 +37,86 @@ shopping.get('/', async (_req, res, next) => {
  * phone) or `{ name }` (free text). Product rows stay one-per-product: if it's
  * already on the list the existing row is returned unchanged (200, not 201).
  */
-shopping.post('/', async (req, res, next) => {
-  try {
-    const quantity = Math.max(1, Number(req.body?.quantity) || 1)
-    const productId = req.body?.productId ? String(req.body.productId) : null
+shopping.post('/', async (req, res) => {
+  const body = parse(addBody, req.body ?? {})
+  const quantity = body.quantity ?? 1
 
-    if (productId) {
-      const existing = await prisma.shoppingItem.findFirst({
-        where: { productId },
-        include: { product: true },
-      })
-      if (existing) return res.json(serializeShoppingItem(existing))
+  if (body.productId) {
+    const productId = body.productId
+    const existing = () =>
+      prisma.shoppingItem.findFirst({ where: { productId }, include: { product: true } })
 
-      const product = await prisma.product.findUnique({ where: { id: productId } })
-      if (!product) return res.status(404).json({ error: 'Producto no encontrado' })
+    const found = await existing()
+    if (found) return res.json(serializeShoppingItem(found))
 
+    const product = await prisma.product.findUnique({ where: { id: productId } })
+    if (!product) throw new HttpError(404, 'Producto no encontrado')
+
+    try {
       const item = await prisma.shoppingItem.create({
         data: { productId, quantity, checked: false },
         include: { product: true },
       })
       return res.status(201).json(serializeShoppingItem(item))
+    } catch (e) {
+      // lost a race against an identical request: the row exists now
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const winner = await existing()
+        if (winner) return res.json(serializeShoppingItem(winner))
+      }
+      throw e
     }
-
-    const name = String(req.body?.name ?? '').trim()
-    if (!name) return res.status(400).json({ error: 'Nombre requerido' })
-
-    const item = await prisma.shoppingItem.create({
-      data: { name, quantity, checked: false },
-      include: { product: true },
-    })
-    res.status(201).json(serializeShoppingItem(item))
-  } catch (e) {
-    next(e)
   }
+
+  if (!body.name) throw new HttpError(400, 'Nombre requerido')
+  const item = await prisma.shoppingItem.create({
+    data: { name: body.name, quantity, checked: false },
+    include: { product: true },
+  })
+  res.status(201).json(serializeShoppingItem(item))
 })
 
 /** Add every low-stock product not already on the list. Returns how many were added. */
-shopping.post('/generate', async (_req, res, next) => {
-  try {
-    const [stockItems, listed] = await Promise.all([
-      prisma.stockItem.findMany(),
-      prisma.shoppingItem.findMany({
-        where: { productId: { not: null } },
-        select: { productId: true },
-      }),
-    ])
-    const onList = new Set(listed.map((r) => r.productId))
+shopping.post('/generate', async (_req, res) => {
+  const stockItems = await prisma.stockItem.findMany()
 
-    const rows = stockItems
-      .filter((s) => {
-        const min = s.minQty == null ? null : Number(s.minQty)
-        return isLow(Number(s.quantity), min) && !onList.has(s.productId)
-      })
-      .map((s) => {
-        const min = s.minQty == null ? null : Number(s.minQty)
-        const quantity = min != null && min > 0 ? Math.max(1, min - Number(s.quantity)) : 1
-        return { productId: s.productId, quantity, checked: false }
-      })
+  const rows = stockItems
+    .filter((s) => isLow(Number(s.quantity), s.minQty == null ? null : Number(s.minQty)))
+    .map((s) => {
+      const min = s.minQty == null ? null : Number(s.minQty)
+      const quantity = min != null && min > 0 ? Math.max(1, min - Number(s.quantity)) : 1
+      return { productId: s.productId, quantity, checked: false }
+    })
 
-    if (rows.length === 0) return res.json({ added: 0 })
-
-    await prisma.shoppingItem.createMany({ data: rows })
-    res.json({ added: rows.length })
-  } catch (e) {
-    next(e)
-  }
+  // the partial unique index on product_id makes skipDuplicates race-safe
+  const { count } = await prisma.shoppingItem.createMany({ data: rows, skipDuplicates: true })
+  res.json({ added: count })
 })
 
-shopping.patch('/:id', async (req, res, next) => {
-  try {
-    const data: { quantity?: number; checked?: boolean } = {}
-    if (req.body?.quantity != null) data.quantity = Math.max(1, Math.round(Number(req.body.quantity)))
-    if (req.body?.checked != null) data.checked = Boolean(req.body.checked)
+const patchBody = z.object({
+  quantity: quantitySchema.nullish(),
+  checked: z.boolean({ error: 'checked debe ser true o false' }).nullish(),
+})
 
-    const item = await prisma.shoppingItem.update({
-      where: { id: req.params.id },
-      data,
-      include: { product: true },
-    })
-    res.json(serializeShoppingItem(item))
-  } catch (e) {
-    next(e)
-  }
+shopping.patch('/:id', async (req, res) => {
+  const { id } = parse(idParams, req.params)
+  const body = parse(patchBody, req.body ?? {})
+  const data: { quantity?: number; checked?: boolean } = {}
+  if (body.quantity != null) data.quantity = body.quantity
+  if (body.checked != null) data.checked = body.checked
+
+  const item = await prisma.shoppingItem.update({ where: { id }, data, include: { product: true } })
+  res.json(serializeShoppingItem(item))
 })
 
 // must be registered before "/:id" so it isn't captured as an id
-shopping.delete('/checked', async (_req, res, next) => {
-  try {
-    await prisma.shoppingItem.deleteMany({ where: { checked: true } })
-    res.status(204).end()
-  } catch (e) {
-    next(e)
-  }
+shopping.delete('/checked', async (_req, res) => {
+  await prisma.shoppingItem.deleteMany({ where: { checked: true } })
+  res.status(204).end()
 })
 
-shopping.delete('/:id', async (req, res, next) => {
-  try {
-    await prisma.shoppingItem.delete({ where: { id: req.params.id } })
-    res.status(204).end()
-  } catch (e) {
-    next(e)
-  }
+shopping.delete('/:id', async (req, res) => {
+  const { id } = parse(idParams, req.params)
+  await prisma.shoppingItem.delete({ where: { id } })
+  res.status(204).end()
 })
