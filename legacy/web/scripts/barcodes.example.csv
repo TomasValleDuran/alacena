@@ -1,6 +1,0 @@
-# One barcode per line. A "barcode" header, blank lines and #comments are ignored.
-# Extra columns are ignored, so a receipt export with more fields is fine.
-barcode
-7790070410992
-7790895000843
-7791234567890
