@@ -30,12 +30,18 @@ export function parsePackagingUnit(quantityStr: string | undefined): string | nu
 }
 
 export async function lookupBarcode(barcode: string): Promise<ProductInsert | null> {
-  const res = await fetch(
-    `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`,
-  )
-  if (!res.ok) return null
-
-  const data = (await res.json()) as OffResponse
+  let data: OffResponse
+  try {
+    const res = await fetch(
+      `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`,
+      { signal: AbortSignal.timeout(8000) },
+    )
+    if (!res.ok) return null
+    data = (await res.json()) as OffResponse
+  } catch {
+    // network error, timeout or bad body: treat as "not found"
+    return null
+  }
   if (data.status !== 1 || !data.product) return null
 
   const p = data.product

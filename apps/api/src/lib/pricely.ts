@@ -1,4 +1,5 @@
 import type { ProductInsert } from './types.js'
+import { isEan } from './barcode.js'
 
 /**
  * api.pricely.ar — the private API behind pricely.ar (Argentine price tracker).
@@ -61,7 +62,7 @@ async function get<T>(path: string): Promise<T | null> {
   }
 }
 
-const isEan = (barcode: string) => /^\d{6,14}$/.test(barcode)
+const pricelyImageUrl = (path: string | undefined) => (path ? `https://images.pricely.ar/${path}` : null)
 
 /**
  * Lookup for the scan path. Product + categories go out in parallel, so the
@@ -81,7 +82,7 @@ export async function lookupPricely(barcode: string): Promise<ProductInsert | nu
     barcode,
     name,
     brand: null,
-    imageUrl: data.imagePath ? `https://images.pricely.ar/${data.imagePath}` : null,
+    imageUrl: pricelyImageUrl(data.imagePath),
     category: null,
     unit: null,
     description: data.description?.trim() || null,
@@ -154,6 +155,7 @@ function cleanCategories(cats: PricelyCategory[] | null): string[] {
 
 // prices move daily; 10 minutes is fresh enough and spares pricely repeat hits
 const TTL_MS = 10 * 60 * 1000
+const CACHE_MAX = 500
 const cache = new Map<string, { at: number; value: PricelyInsights | null }>()
 
 /** Live prices per market + categories (+ product extras), cached for 10 min. */
@@ -177,11 +179,13 @@ export async function pricelyInsights(barcode: string): Promise<PricelyInsights 
           categories: cleanCategories(categories),
           description: product?.description?.trim() || null,
           blurHash: product?.blurHash || null,
-          imageUrl: product?.imagePath ? `https://images.pricely.ar/${product.imagePath}` : null,
+          imageUrl: pricelyImageUrl(product?.imagePath),
         }
       : null
 
   // a miss/failure is only remembered for a minute, so a blip doesn't hide prices for 10
+  cache.delete(barcode) // re-insert so Map order stays oldest-first
+  if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!)
   cache.set(barcode, { at: value ? Date.now() : Date.now() - TTL_MS + 60_000, value })
   return value
 }
