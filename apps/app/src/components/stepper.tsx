@@ -10,6 +10,8 @@ type Props = {
   value: number
   onChange: (next: number) => void
   min?: number
+  /** "+" is disabled at this value */
+  max?: number
   /** label for screen readers, e.g. "Cantidad de Yerba Playadito" */
   label: string
   size?: 'compact' | 'large'
@@ -17,6 +19,10 @@ type Props = {
   onRemove?: () => void
   /** tint the number (low/out stock) */
   tone?: 'default' | 'warn' | 'danger'
+  /** how the number is drawn, e.g. (n) => `×${n}`; screen readers still get the plain number */
+  format?: (value: number) => string
+  /** min width of the number, for formats wider than a plain number (default 28 compact, 64 large) */
+  valueWidth?: number
 }
 
 /**
@@ -28,15 +34,19 @@ export function Stepper({
   value,
   onChange,
   min = 0,
+  max = Infinity,
   label,
   size = 'compact',
   onRemove,
   tone = 'default',
+  format = String,
+  valueWidth,
 }: Props) {
   const { c } = useTheme()
   const large = size === 'large'
   const well = large ? 48 : 34
   const atMin = value <= min
+  const atMax = value >= max
   const showTrash = atMin && onRemove != null
   const numberColor = tone === 'danger' ? c.danger : tone === 'warn' ? c.warn : c.text
 
@@ -46,7 +56,7 @@ export function Stepper({
       onRemove!()
       return
     }
-    const next = Math.max(min, value + delta)
+    const next = Math.min(max, Math.max(min, value + delta))
     if (next === value) return
     feedback.tick()
     onChange(next)
@@ -75,12 +85,12 @@ export function Stepper({
       <Text
         style={[
           large ? t.largeNumber : { ...t.headline, fontVariant: ['tabular-nums'] },
-          { minWidth: large ? 64 : 28, textAlign: 'center', color: numberColor },
+          { minWidth: valueWidth ?? (large ? 64 : 28), textAlign: 'center', color: numberColor },
         ]}
       >
-        {value}
+        {format(value)}
       </Text>
-      <StepButton icon="add" well={well} onPress={() => step(1)} />
+      <StepButton icon="add" well={well} disabled={atMax} onPress={() => step(1)} />
     </View>
   )
 }
