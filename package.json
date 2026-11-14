@@ -1,0 +1,19 @@
+{
+  "name": "alacena",
+  "private": true,
+  "description": "Alacena monorepo: Expo app (apps/app), API (apps/api), tools and brand assets. No workspaces: each app keeps its own package.json and lockfile.",
+  "scripts": {
+    "app:start": "npm --prefix apps/app run start",
+    "app:ios": "npm --prefix apps/app run ios",
+    "app:android": "npm --prefix apps/app run android",
+    "app:web": "npm --prefix apps/app run web",
+    "app:lint": "npm --prefix apps/app run lint",
+    "api:dev": "npm --prefix apps/api run dev",
+    "api:build": "npm --prefix apps/api run build",
+    "api:start": "npm --prefix apps/api run start",
+    "api:prisma:generate": "npm --prefix apps/api run prisma:generate",
+    "api:prisma:migrate": "npm --prefix apps/api run prisma:migrate",
+    "api:prisma:studio": "npm --prefix apps/api run prisma:studio",
+    "import:barcodes": "node tools/import-barcodes/import-barcodes.mjs"
+  }
+}
