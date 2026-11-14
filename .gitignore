@@ -1,0 +1,36 @@
+# Repo-wide rules. App-specific rules stay next to each app:
+#   apps/app/.gitignore  Expo/Metro/native: .expo/, web-build/, /ios, /android,
+#                        signing keys, expo-env.d.ts, ...
+#   apps/api/.gitignore  node_modules, dist, .env (also covered here)
+
+# dependencies and build output (dist/ is also the `expo export` web output)
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# environment: never commit real env files, only the examples
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# editors and OS
+.DS_Store
+.idea/
+*.swp
+
+# Expo (anywhere, e.g. if a tool is run from the repo root)
+.expo/
+# generated native projects (prebuild); apps/app/.gitignore has /ios and
+# /android too, kept here as well because they are large and easy to commit
+apps/app/android/
+apps/app/ios/
+
+# Python (tools/pricely-mirror)
+__pycache__/
+*.pyc
+.venv/
+
+# logs
+npm-debug.log*
