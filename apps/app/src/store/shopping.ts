@@ -1,11 +1,10 @@
 import { create } from 'zustand'
 
-import { api, errorMessage } from '@/lib/api'
+import { api } from '@/lib/api'
 import type { ShoppingRow } from '@/lib/types'
 
+import { fetchInto, type Status } from './resource'
 import { useStock } from './stock'
-
-type Status = 'idle' | 'loading' | 'ready' | 'error'
 
 type ShoppingState = {
   items: ShoppingRow[]
@@ -36,20 +35,7 @@ export const useShopping = create<ShoppingState>((set, get) => {
     error: null,
     refreshing: false,
 
-    async fetch(opts) {
-      const first = get().status !== 'ready'
-      if (opts?.silent && first) return
-      set(first ? { status: 'loading', error: null } : { refreshing: !opts?.silent })
-      try {
-        const items = await api.getShopping()
-        set({ items, status: 'ready', error: null })
-      } catch (e) {
-        if (first) set({ status: 'error', error: errorMessage(e) })
-        else if (!opts?.silent) set({ error: errorMessage(e) })
-      } finally {
-        set({ refreshing: false })
-      }
-    },
+    fetch: (opts) => fetchInto(set, get, () => api.getShopping(), opts),
 
     async addText(name) {
       const row = await api.addShoppingText(name)

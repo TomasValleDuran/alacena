@@ -1,12 +1,5 @@
+import { normalizeText as fold } from './text'
 import { stockLevel, type StockRow } from './types'
-
-const fold = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim()
 
 /**
  * Pantry products matching what's being typed in the list's quick-add field.

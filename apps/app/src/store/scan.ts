@@ -167,8 +167,8 @@ export const useScan = create<ScanState>((set, get) => {
   }
 })
 
-export const MODE_COPY: Record<ScanMode, { label: string; verb: string; hint: string }> = {
-  add: { label: 'Guardar', verb: 'Sumar', hint: 'Escaneá lo que guardás' },
-  use: { label: 'Usar', verb: 'Restar', hint: 'Escaneá lo que terminaste' },
-  check: { label: 'Consultar', verb: 'Ver', hint: 'Escaneá para ver cuánto hay' },
+export const MODE_COPY: Record<ScanMode, { label: string; hint: string }> = {
+  add: { label: 'Guardar', hint: 'Escaneá lo que guardás' },
+  use: { label: 'Usar', hint: 'Escaneá lo que terminaste' },
+  check: { label: 'Consultar', hint: 'Escaneá para ver cuánto hay' },
 }

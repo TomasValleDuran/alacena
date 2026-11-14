@@ -1,3 +1,4 @@
+import { fold } from './text'
 import type { MarketPrice } from './types'
 
 /**
@@ -17,7 +18,7 @@ export const MY_MARKETS = [
   'Vea',
 ] as const
 
-const key = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase()
+const key = (s: string) => fold(s).trim()
 const mine = new Set(MY_MARKETS.map(key))
 
 /**
@@ -26,7 +27,7 @@ const mine = new Set(MY_MARKETS.map(key))
  * say "Coto is 25% cheaper" for someone buying one bottle — so those rank by
  * the single-unit shelf price and the deal is shown on the side.
  */
-export function isMultiBuy(promo: string | null): boolean {
+function isMultiBuy(promo: string | null): boolean {
   return !!promo && /\b(2da|2do|segund[ao]|\d\s*x\s*\d)\b/i.test(promo)
 }
 
@@ -56,7 +57,7 @@ export function myMarkets(markets: MarketPrice[]): MyPrice[] {
     .sort((a, b) => a.unitPrice - b.unitPrice)
 }
 
-/** "Carrefour, Coto, Vea, Jumbo ni Disco" */
+/** The stores as a Spanish list, e.g. "Coto, Carrefour, Easy, Farmacity, Jumbo, Sodimac, Dia, Disco ni Vea". */
 export function myMarketsLabel(): string {
   return `${MY_MARKETS.slice(0, -1).join(', ')} ni ${MY_MARKETS[MY_MARKETS.length - 1]}`
 }

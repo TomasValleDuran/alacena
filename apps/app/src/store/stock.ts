@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 
-import { api, errorMessage } from '@/lib/api'
+import { api } from '@/lib/api'
 import type { Product, StockRow } from '@/lib/types'
 
-type Status = 'idle' | 'loading' | 'ready' | 'error'
+import { fetchInto, type Status } from './resource'
 
 type StockState = {
   items: StockRow[]
@@ -23,6 +23,10 @@ type StockState = {
 // in-flight stepper requests per row: only the last reply may overwrite the
 // optimistic value, so fast taps never "bounce back"
 const inflight = new Map<string, number>()
+// id of the newest request per row: replies can arrive out of order, and the
+// older one must not win just because it landed last
+const latest = new Map<string, number>()
+let requestSeq = 0
 
 export const useStock = create<StockState>((set, get) => {
   function patchRow(id: string, patch: Partial<StockRow>) {
@@ -35,21 +39,7 @@ export const useStock = create<StockState>((set, get) => {
     error: null,
     refreshing: false,
 
-    async fetch(opts) {
-      const first = get().status !== 'ready'
-      if (opts?.silent && first) return
-      set(first ? { status: 'loading', error: null } : { refreshing: !opts?.silent })
-      try {
-        const items = await api.getStock()
-        set({ items, status: 'ready', error: null })
-      } catch (e) {
-        // keep showing the last good data on a failed refresh
-        if (first) set({ status: 'error', error: errorMessage(e) })
-        else if (!opts?.silent) set({ error: errorMessage(e) })
-      } finally {
-        set({ refreshing: false })
-      }
-    },
+    fetch: (opts) => fetchInto(set, get, () => api.getStock(), opts),
 
     async adjust(row, delta) {
       const current = get().items.find((r) => r.id === row.id)
@@ -58,10 +48,12 @@ export const useStock = create<StockState>((set, get) => {
       if (optimistic === current.quantity) return
       patchRow(row.id, { quantity: optimistic, updatedAt: new Date().toISOString() })
 
+      const mine = ++requestSeq
+      latest.set(row.id, mine)
       inflight.set(row.id, (inflight.get(row.id) ?? 0) + 1)
       try {
         const total = await api.addStock(row.productId, optimistic - current.quantity)
-        if (inflight.get(row.id) === 1) patchRow(row.id, { quantity: total })
+        if (latest.get(row.id) === mine) patchRow(row.id, { quantity: total })
       } catch (e) {
         if (inflight.get(row.id) === 1) await get().fetch({ silent: true })
         throw e
