@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 
 import { Button } from '@/components/button'
+import { Card } from '@/components/card'
 import { PriceList } from '@/components/price-list'
 import { ProductThumb } from '@/components/product-thumb'
 import { StateView } from '@/components/state-view'
@@ -61,7 +62,7 @@ export default function ItemScreen() {
       </View>
 
       {/* quantity */}
-      <Section>
+      <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ gap: 2, flexShrink: 1 }}>
             <Text style={[t.headline, { color: c.text }]}>En casa</Text>
@@ -77,10 +78,10 @@ export default function ItemScreen() {
             onChange={(next) => adjust(row, next - row.quantity).catch((e) => reportError(e))}
           />
         </View>
-      </Section>
+      </Card>
 
       {/* threshold */}
-      <Section>
+      <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ gap: 2, flexShrink: 1 }}>
             <Text style={[t.headline, { color: c.text }]}>Mínimo</Text>
@@ -94,13 +95,13 @@ export default function ItemScreen() {
             onChange={(next) => setMinQty(row, next).catch((e) => reportError(e))}
           />
         </View>
-      </Section>
+      </Card>
 
       {/* live prices (pricely) */}
-      <Section>
+      <Card>
         <Text style={[t.headline, { color: c.text, marginBottom: space.xs }]}>Precios</Text>
         <PriceList productId={p.id} />
-      </Section>
+      </Card>
 
       <About categories={p.categories ?? []} description={p.description ?? null} />
 
@@ -144,22 +145,6 @@ export default function ItemScreen() {
         />
       </View>
     </ScrollView>
-  )
-}
-
-function Section({ children }: { children: React.ReactNode }) {
-  const { c } = useTheme()
-  return (
-    <View
-      style={{
-        backgroundColor: c.surface,
-        borderRadius: radius.lg,
-        borderCurve: 'continuous',
-        padding: space.lg,
-      }}
-    >
-      {children}
-    </View>
   )
 }
 
