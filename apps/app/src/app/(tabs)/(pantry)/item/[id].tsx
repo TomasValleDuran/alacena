@@ -9,6 +9,7 @@ import { ProductThumb } from '@/components/product-thumb'
 import { StateView } from '@/components/state-view'
 import { Stepper } from '@/components/stepper'
 import { confirmDestructive, reportError } from '@/lib/alert'
+import { suggestedQty } from '@/lib/suggest'
 import { stockLevel } from '@/lib/types'
 import { useShopping } from '@/store/shopping'
 import { useStock } from '@/store/stock'
@@ -116,9 +117,7 @@ export default function ItemScreen() {
           onPress={async () => {
             setAdding(true)
             try {
-              // same suggestion the backend's "agregar los que faltan" uses
-              const suggested = min > 0 ? Math.max(1, min - row.quantity) : 1
-              await addToList(row.productId, suggested)
+              await addToList(row.productId, suggestedQty(row))
             } catch (e) {
               reportError(e, 'No se pudo agregar')
             } finally {
