@@ -114,15 +114,12 @@ export default function ItemScreen() {
           disabled={onList}
           loading={adding}
           stretch
-          onPress={async () => {
+          onPress={() => {
             setAdding(true)
-            try {
-              await addToList(row.productId, suggestedQty(row))
-            } catch (e) {
-              reportError(e, 'No se pudo agregar')
-            } finally {
-              setAdding(false)
-            }
+            // promise chain rather than try/finally: the React Compiler can't compile the latter
+            addToList(row.productId, suggestedQty(row))
+              .catch((e) => reportError(e, 'No se pudo agregar'))
+              .finally(() => setAdding(false))
           }}
         />
         <Button
