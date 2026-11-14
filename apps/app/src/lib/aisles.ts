@@ -1,3 +1,4 @@
+import { fold } from './text'
 import type { Product } from './types'
 
 /**
@@ -38,7 +39,6 @@ export const AISLES: { key: AisleKey; label: string; match: RegExp | null }[] = 
   { key: 'otros', label: 'Otros', match: null },
 ]
 
-const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 const RULES = AISLES.filter((a) => a.match).map((a) => ({ key: a.key, re: new RegExp(fold(a.match!.source)) }))
 
 function classify(tag: string): AisleKey | null {

@@ -19,7 +19,7 @@ export type ScanGateConfig = {
   rearmMs: number
 }
 
-export const DEFAULT_GATE: ScanGateConfig = {
+const DEFAULT_GATE: ScanGateConfig = {
   confirmHits: 3,
   frameGapMs: 250,
   cooldownMs: 1200,

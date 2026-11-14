@@ -1,4 +1,5 @@
 import { aisleLabel, aisleOf, aisleOrder, type AisleKey } from './aisles'
+import { fold } from './text'
 import { stockLevel, type StockLevel, type StockRow } from './types'
 import type { GroupBy, PantryFilter, SortBy } from '@/store/pantry-view'
 
@@ -12,7 +13,6 @@ export type PantrySection = {
 }
 
 const collator = new Intl.Collator('es', { sensitivity: 'base' })
-export const fold = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
 
 const LEVEL_ORDER: Record<StockLevel, number> = { out: 0, low: 1, ok: 2 }
 const LEVEL_TITLE: Record<StockLevel, string> = { out: 'Agotado', low: 'Por reponer', ok: 'Con stock' }
