@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { isEan, isPlausibleRetailCode } from '../src/lib/barcode.js'
@@ -34,21 +34,11 @@ describe('isEan', () => {
   })
 })
 
-// Shared fixture owned by tools/: skipped when the file isn't there.
+// Shared vectors, also read by the app's barcode tests.
 const fixturePath = fileURLToPath(new URL('../../../tools/fixtures/barcodes.json', import.meta.url))
-describe.skipIf(!existsSync(fixturePath))('shared barcode fixtures', () => {
-  it('agree with isPlausibleRetailCode', () => {
-    const data = JSON.parse(readFileSync(fixturePath, 'utf8')) as unknown
-    const raw = Array.isArray(data) ? data : ((data as Record<string, unknown>).cases ?? data)
-    const cases = (Array.isArray(raw) ? raw : Object.entries(raw as object).map(([code, v]) => ({ code, ...(typeof v === 'object' ? v : { valid: v }) }))) as Record<string, unknown>[]
-    let checked = 0
-    for (const c of cases) {
-      const code = (c.code ?? c.barcode ?? c.input) as string | undefined
-      const valid = (c.valid ?? c.plausible ?? c.expected) as boolean | undefined
-      if (typeof code !== 'string' || typeof valid !== 'boolean') continue
-      expect(isPlausibleRetailCode(code), code).toBe(valid)
-      checked++
-    }
-    expect(checked).toBeGreaterThan(0)
+describe('shared barcode fixtures', () => {
+  const cases = JSON.parse(readFileSync(fixturePath, 'utf8')) as { code: string; valid: boolean }[]
+  it.each(cases)('$code → $valid', ({ code, valid }) => {
+    expect(isPlausibleRetailCode(code)).toBe(valid)
   })
 })
