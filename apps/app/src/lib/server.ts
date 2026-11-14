@@ -1,20 +1,17 @@
-import Storage from 'expo-sqlite/kv-store'
-import Constants from 'expo-constants'
+import { guessApiUrl } from './api-host'
+import Storage from './storage'
 
 const KEY = 'alacena.apiUrl'
 
 /**
  * Where the backend lives. Order: saved in Ajustes → EXPO_PUBLIC_API_URL →
- * (dev) the Metro host's LAN IP on :3001 → localhost. On a real phone
- * "localhost" is the phone itself, so the LAN guess is what makes
- * `expo start` + `npm run dev` in back-alacena work with zero setup.
+ * a per-platform guess (`api-host.ts`: the Metro host's LAN IP on :3001 on a
+ * phone; the page's own host on web).
  */
 export function defaultApiUrl(): string {
   const env = process.env.EXPO_PUBLIC_API_URL
   if (env) return trimSlash(env)
-  const host = Constants.expoConfig?.hostUri?.split(':')[0]
-  if (host) return `http://${host}:3001`
-  return 'http://localhost:3001'
+  return trimSlash(guessApiUrl())
 }
 
 export function loadApiUrl(): string {
