@@ -8,7 +8,11 @@
     "scheme": "alacena",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": {
+        "light": "./assets/images/ios-icon-light.png",
+        "dark": "./assets/images/ios-icon-dark.png",
+        "tinted": "./assets/images/ios-icon-tinted.png"
+      },
       "bundleIdentifier": "app.alacena.mobile",
       "supportsTablet": false,
       "infoPlist": {
@@ -38,8 +42,10 @@
           "backgroundColor": "#F6F5F0",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76,
+          "resizeMode": "contain",
           "dark": {
-            "backgroundColor": "#10120F"
+            "backgroundColor": "#10120F",
+            "image": "./assets/images/splash-icon-dark.png"
           }
         }
       ],

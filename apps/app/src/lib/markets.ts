@@ -1,11 +1,21 @@
 import type { MarketPrice } from './types'
 
 /**
- * The supermarkets this household actually shops at. Prices from any other
- * market pricely tracks are ignored. Names as pricely spells them; matching
- * ignores case and accents.
+ * The stores this household actually shops at (supermarkets, plus a pharmacy
+ * and home-improvement chains). Prices from any other market pricely tracks
+ * are ignored. Names as pricely spells them; matching ignores case and accents.
  */
-export const MY_MARKETS = ['Carrefour', 'Coto', 'Vea', 'Jumbo', 'Disco'] as const
+export const MY_MARKETS = [
+  'Coto',
+  'Carrefour',
+  'Easy',
+  'Farmacity',
+  'Jumbo',
+  'Sodimac',
+  'Dia',
+  'Disco',
+  'Vea',
+] as const
 
 const key = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase()
 const mine = new Set(MY_MARKETS.map(key))
