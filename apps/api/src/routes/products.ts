@@ -1,7 +1,9 @@
 import { Router } from 'express'
+import { z } from 'zod'
 import { prisma } from '../db.js'
 import { serializeProduct } from '../serialize.js'
-import { isPlausibleRetailCode } from '../lib/barcode.js'
+import { idParams, parse } from '../http.js'
+import { isEan, isPlausibleRetailCode } from '../lib/barcode.js'
 import { lookupPricely, pricelyCategories, pricelyInsights } from '../lib/pricely.js'
 import { lookupBarcode } from '../lib/openFoodFacts.js'
 import type { ProductInsert } from '../lib/types.js'
@@ -27,45 +29,46 @@ async function upsertByBarcode(insert: ProductInsert) {
   })
 }
 
+const resolveBody = z.object({
+  barcode: z.string({ error: 'Código inválido' }).trim().min(4, 'Código inválido'),
+})
+
 /**
  * Resolve a scanned barcode: local cache → pricely.ar → Open Food Facts.
  * Caches the first hit in `products`. 404 (with {found:false}) when nothing
  * knows the code, so the client can prompt for a manual name.
  */
-products.post('/resolve', async (req, res, next) => {
-  try {
-    const barcode = String(req.body?.barcode ?? '').trim()
-    if (barcode.length < 4) return res.status(400).json({ error: 'Código inválido' })
-    if (!isPlausibleRetailCode(barcode)) {
-      return res.status(422).json({ error: `El código ${barcode} no pasa la verificación EAN.` })
-    }
-
-    const cached = await prisma.product.findUnique({ where: { barcode } })
-    if (cached) return res.json({ product: serializeProduct(cached) })
-
-    const found = (await lookupPricely(barcode)) ?? (await lookupBarcode(barcode))
-    if (!found) return res.status(404).json({ found: false })
-
-    const product = await upsertByBarcode(found)
-    res.json({ product: serializeProduct(product) })
-  } catch (e) {
-    next(e)
+products.post('/resolve', async (req, res) => {
+  const { barcode } = parse(resolveBody, req.body ?? {})
+  if (!isPlausibleRetailCode(barcode)) {
+    return res.status(422).json({ error: `El código ${barcode} no pasa la verificación EAN.` })
   }
+
+  const cached = await prisma.product.findUnique({ where: { barcode } })
+  if (cached) return res.json({ product: serializeProduct(cached) })
+
+  const found = (await lookupPricely(barcode)) ?? (await lookupBarcode(barcode))
+  if (!found) return res.status(404).json({ found: false })
+
+  const product = await upsertByBarcode(found)
+  res.json({ product: serializeProduct(product) })
+})
+
+const createBody = z.object({
+  barcode: z.string({ error: 'Faltan barcode o nombre' }).trim().min(1, 'Faltan barcode o nombre'),
+  name: z.string({ error: 'Faltan barcode o nombre' }).trim().min(1, 'Faltan barcode o nombre'),
+  brand: z
+    .string({ error: 'Marca inválida' })
+    .trim()
+    .nullish()
+    .transform((b) => b || null),
 })
 
 /** Manual create (used by the "sin código de barras" form). */
-products.post('/', async (req, res, next) => {
-  try {
-    const barcode = String(req.body?.barcode ?? '').trim()
-    const name = String(req.body?.name ?? '').trim()
-    if (!barcode || !name) return res.status(400).json({ error: 'Faltan barcode o nombre' })
-
-    const brand = req.body?.brand ? String(req.body.brand).trim() || null : null
-    const product = await upsertByBarcode({ barcode, name, brand })
-    res.status(201).json({ product: serializeProduct(product) })
-  } catch (e) {
-    next(e)
-  }
+products.post('/', async (req, res) => {
+  const { barcode, name, brand } = parse(createBody, req.body ?? {})
+  const product = await upsertByBarcode({ barcode, name, brand })
+  res.status(201).json({ product: serializeProduct(product) })
 })
 
 /**
@@ -77,7 +80,7 @@ products.post('/', async (req, res, next) => {
 const noCategories = new Set<string>()
 let backfilling = false
 
-products.post('/backfill-categories', async (_req, res, next) => {
+products.post('/backfill-categories', async (_req, res) => {
   if (backfilling) return res.json({ updated: 0, remaining: null, busy: true })
   backfilling = true
   try {
@@ -85,7 +88,7 @@ products.post('/backfill-categories', async (_req, res, next) => {
       where: { categories: { isEmpty: true } },
       select: { id: true, barcode: true },
     })
-    const todo = candidates.filter((p) => /^\d{6,14}$/.test(p.barcode) && !noCategories.has(p.id))
+    const todo = candidates.filter((p) => isEan(p.barcode) && !noCategories.has(p.id))
     const batch = todo.slice(0, 40)
     let updated = 0
     for (const p of batch) {
@@ -99,8 +102,6 @@ products.post('/backfill-categories', async (_req, res, next) => {
       await new Promise((r) => setTimeout(r, 150)) // be gentle with pricely
     }
     res.json({ updated, remaining: todo.length - batch.length })
-  } catch (e) {
-    next(e)
   } finally {
     backfilling = false
   }
@@ -112,32 +113,29 @@ products.post('/backfill-categories', async (_req, res, next) => {
  * blurHash / categories / image, so products scanned before this existed (or
  * added by hand) catch up. `prices: null` = pricely doesn't know it or is down.
  */
-products.get('/:id/insights', async (req, res, next) => {
-  try {
-    const product = await prisma.product.findUnique({ where: { id: req.params.id } })
-    if (!product) return res.status(404).json({ error: 'Producto no encontrado' })
+products.get('/:id/insights', async (req, res) => {
+  const { id } = parse(idParams, req.params)
+  const product = await prisma.product.findUnique({ where: { id } })
+  if (!product) return res.status(404).json({ error: 'Producto no encontrado' })
 
-    const info = await pricelyInsights(product.barcode)
-    if (!info) return res.json({ product: serializeProduct(product), prices: null })
+  const info = await pricelyInsights(product.barcode)
+  if (!info) return res.json({ product: serializeProduct(product), prices: null })
 
-    const patch: { description?: string; blurHash?: string; categories?: string[]; imageUrl?: string } = {}
-    if (!product.description && info.description) patch.description = info.description
-    if (!product.blurHash && info.blurHash) patch.blurHash = info.blurHash
-    if (product.categories.length === 0 && info.categories.length > 0) patch.categories = info.categories
-    if (!product.imageUrl && info.imageUrl) patch.imageUrl = info.imageUrl
-    const updated = Object.keys(patch).length
-      ? await prisma.product.update({ where: { id: product.id }, data: patch })
-      : product
+  const patch: { description?: string; blurHash?: string; categories?: string[]; imageUrl?: string } = {}
+  if (!product.description && info.description) patch.description = info.description
+  if (!product.blurHash && info.blurHash) patch.blurHash = info.blurHash
+  if (product.categories.length === 0 && info.categories.length > 0) patch.categories = info.categories
+  if (!product.imageUrl && info.imageUrl) patch.imageUrl = info.imageUrl
+  const updated = Object.keys(patch).length
+    ? await prisma.product.update({ where: { id: product.id }, data: patch })
+    : product
 
-    res.json({
-      product: serializeProduct(updated),
-      prices: {
-        markets: info.markets,
-        avgPrice: info.avgPrice,
-        cheapest: info.markets[0] ?? null,
-      },
-    })
-  } catch (e) {
-    next(e)
-  }
+  res.json({
+    product: serializeProduct(updated),
+    prices: {
+      markets: info.markets,
+      avgPrice: info.avgPrice,
+      cheapest: info.markets[0] ?? null,
+    },
+  })
 })
