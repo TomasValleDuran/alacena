@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 
-import { api, errorMessage } from '@/lib/api'
+import { api } from '@/lib/api'
 import type { Product, StockRow } from '@/lib/types'
 
-type Status = 'idle' | 'loading' | 'ready' | 'error'
+import { fetchInto, type Status } from './resource'
 
 type StockState = {
   items: StockRow[]
@@ -35,21 +35,7 @@ export const useStock = create<StockState>((set, get) => {
     error: null,
     refreshing: false,
 
-    async fetch(opts) {
-      const first = get().status !== 'ready'
-      if (opts?.silent && first) return
-      set(first ? { status: 'loading', error: null } : { refreshing: !opts?.silent })
-      try {
-        const items = await api.getStock()
-        set({ items, status: 'ready', error: null })
-      } catch (e) {
-        // keep showing the last good data on a failed refresh
-        if (first) set({ status: 'error', error: errorMessage(e) })
-        else if (!opts?.silent) set({ error: errorMessage(e) })
-      } finally {
-        set({ refreshing: false })
-      }
-    },
+    fetch: (opts) => fetchInto(set, get, () => api.getStock(), opts),
 
     async adjust(row, delta) {
       const current = get().items.find((r) => r.id === row.id)
