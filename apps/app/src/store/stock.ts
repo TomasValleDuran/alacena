@@ -23,6 +23,10 @@ type StockState = {
 // in-flight stepper requests per row: only the last reply may overwrite the
 // optimistic value, so fast taps never "bounce back"
 const inflight = new Map<string, number>()
+// id of the newest request per row: replies can arrive out of order, and the
+// older one must not win just because it landed last
+const latest = new Map<string, number>()
+let requestSeq = 0
 
 export const useStock = create<StockState>((set, get) => {
   function patchRow(id: string, patch: Partial<StockRow>) {
@@ -44,10 +48,12 @@ export const useStock = create<StockState>((set, get) => {
       if (optimistic === current.quantity) return
       patchRow(row.id, { quantity: optimistic, updatedAt: new Date().toISOString() })
 
+      const mine = ++requestSeq
+      latest.set(row.id, mine)
       inflight.set(row.id, (inflight.get(row.id) ?? 0) + 1)
       try {
         const total = await api.addStock(row.productId, optimistic - current.quantity)
-        if (inflight.get(row.id) === 1) patchRow(row.id, { quantity: total })
+        if (latest.get(row.id) === mine) patchRow(row.id, { quantity: total })
       } catch (e) {
         if (inflight.get(row.id) === 1) await get().fetch({ silent: true })
         throw e
