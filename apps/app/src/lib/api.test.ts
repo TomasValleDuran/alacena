@@ -3,7 +3,7 @@ import { api, ApiError } from './api'
 const UNEXPECTED = 'El servidor respondió algo inesperado. Revisá la dirección en Ajustes.'
 
 function reply(status: number, body: string) {
-  global.fetch = jest.fn().mockResolvedValue({
+  globalThis.fetch = jest.fn().mockResolvedValue({
     status,
     text: () => Promise.resolve(body),
   }) as unknown as typeof fetch
@@ -63,7 +63,7 @@ describe('normal responses', () => {
   })
 
   it('a network failure says there is no connection', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('x')) as unknown as typeof fetch
+    globalThis.fetch = jest.fn().mockRejectedValue(new Error('x')) as unknown as typeof fetch
     await expect(api.getStock()).rejects.toThrow('No hay conexión con el servidor.')
   })
 })
