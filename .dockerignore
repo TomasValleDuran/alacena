@@ -1,0 +1,28 @@
+# Build context is the repo root (docker build -f apps/api/Dockerfile .)
+**/node_modules
+**/dist
+**/.expo
+**/web-build
+apps/app/android
+apps/app/ios
+**/.git
+.git
+.github
+.claude
+**/.env
+**/.env.*
+!**/.env.example
+**/*.md
+**/.DS_Store
+.idea
+.vscode
+**/coverage
+
+# not needed by the image
+assets
+tools
+apps/api/docker-compose.yml
+apps/api/test
+apps/api/Dockerfile
+apps/app/src/**/*.test.ts
+apps/app/src/**/*.test.tsx
