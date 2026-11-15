@@ -84,7 +84,7 @@ function Radio({ label, hint, selected, onPress }: { label: string; hint: string
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      aria-checked={selected}
       accessibilityLabel={label}
       accessibilityHint={hint}
       onPress={() => {

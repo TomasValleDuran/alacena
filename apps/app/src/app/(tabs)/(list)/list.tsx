@@ -299,7 +299,7 @@ const ListRow = memo(function ListRow({ row }: { row: ShoppingRow }) {
       <Pressable
         onPress={onToggle}
         accessibilityRole="checkbox"
-        accessibilityState={{ checked: row.checked }}
+        aria-checked={row.checked}
         accessibilityLabel={name}
         style={({ pressed }) => ({
           flex: 1,

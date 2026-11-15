@@ -26,6 +26,9 @@ const TABS: { name: string; href: '/' | '/scan' | '/list'; label: string; icon: 
   { name: '(list)', href: '/list', label: 'Lista', icon: 'cart' },
 ]
 
+// a cold load of a sheet URL (e.g. /settings) shows Despensa underneath, not the first route alphabetically
+export const unstable_settings = { anchor: '(pantry)' }
+
 export default function TabsLayout() {
   const { c } = useTheme()
   const wide = useWindowDimensions().width >= WIDE

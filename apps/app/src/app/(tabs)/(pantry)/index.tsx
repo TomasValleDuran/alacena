@@ -238,7 +238,7 @@ function SectionHeader({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ expanded: open }}
+      aria-expanded={open}
       accessibilityLabel={`${section.title}, ${n} ${n === 1 ? 'producto' : 'productos'}${section.restock ? `, ${section.restock} por reponer` : ''}`}
       accessibilityHint={onToggle ? (open ? 'Cierra la sección' : 'Abre la sección') : undefined}
       disabled={!onToggle}
