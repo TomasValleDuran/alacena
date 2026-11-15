@@ -52,6 +52,7 @@ export default function ManualEntrySheet() {
           autoFocus
           autoCorrect={false}
           returnKeyType="search"
+          blurOnSubmit={false} // react-native-web ignores submitBehavior; without this Enter blurs the field
           submitBehavior="submit"
           onSubmitEditing={send}
           style={{ fontSize: 22, fontVariant: ['tabular-nums'], letterSpacing: 1 }}
