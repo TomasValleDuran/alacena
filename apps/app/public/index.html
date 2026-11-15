@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!-- viewport-fit=cover: content may extend under the notch / home indicator; the app pads with safe-area insets -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>%WEB_TITLE%</title>
+    <!-- Installability (no service worker on purpose). Colours: src/theme/tokens.ts -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Alacena" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F5F0" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#10120F" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+    <!-- Alacena: page colour before JS paints, and what react-native-web doesn't give pressables by default -->
+    <style id="alacena-web">
+      :root {
+        --focus-ring: #2e6a3d;
+      }
+      body {
+        background-color: #f6f5f0;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --focus-ring: #8ccb99;
+        }
+        body {
+          background-color: #10120f;
+        }
+      }
+      /* RNW's Pressable already sets cursor: pointer */
+      [aria-disabled='true'] {
+        cursor: default;
+      }
+      :focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      input:focus-visible,
+      textarea:focus-visible {
+        outline-offset: 0;
+      }
+      /* the dialog container only takes focus so Tab starts inside it */
+      [role='dialog']:focus-visible {
+        outline: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript> Alacena necesita JavaScript para funcionar. </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

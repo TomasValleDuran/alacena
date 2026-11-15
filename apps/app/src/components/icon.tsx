@@ -7,9 +7,10 @@ import { Text, View, type ColorValue } from 'react-native'
  * One vocabulary, two native families: SF Symbols on iOS, Material Symbols on
  * Android. Screens use the semantic key, never a platform glyph name.
  *
- * `cp` is the Material Symbols codepoint. On Android we draw the glyph
- * ourselves instead of using SymbolView: its Text keeps Android's default font
- * padding and isn't centered, so icons sat low and off-center in round buttons.
+ * `cp` is the Material Symbols codepoint. Off iOS (Android and web) we draw
+ * the glyph ourselves instead of using SymbolView: its Text isn't centered
+ * (and keeps Android's default font padding), so icons sat low and off-center
+ * in round buttons. The fixed-size box means no layout shift while the font loads.
  */
 const ICONS = {
   add: { ios: 'plus', android: 'add', cp: 57669 },
@@ -45,7 +46,7 @@ const ICONS = {
 export type IconName = keyof typeof ICONS
 
 export function Icon({ name, size = 22, color }: { name: IconName; size?: number; color: ColorValue }) {
-  if (process.env.EXPO_OS === 'android') return <MaterialGlyph cp={ICONS[name].cp} size={size} color={color} />
+  if (process.env.EXPO_OS !== 'ios') return <MaterialGlyph cp={ICONS[name].cp} size={size} color={color} />
   const glyph = ICONS[name]
   return (
     <SymbolView
@@ -65,6 +66,7 @@ function MaterialGlyph({ cp, size, color }: { cp: number; size: number; color: C
       {loaded ? (
         <Text
           aria-hidden
+          selectable={false}
           allowFontScaling={false}
           style={{
             fontFamily: material.name,

@@ -32,6 +32,14 @@
       "package": "app.alacena.mobile"
     },
     "web": {
+      "output": "single",
+      "bundler": "metro",
+      "name": "Alacena",
+      "shortName": "Alacena",
+      "lang": "es-AR",
+      "description": "Lo que hay en tu alacena y lo que falta comprar.",
+      "themeColor": "#2E6A3D",
+      "backgroundColor": "#F6F5F0",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [

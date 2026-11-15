@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router'
 import { memo, useCallback, useMemo, useState } from 'react'
-import { Alert, Pressable, RefreshControl, SectionList, Text, TextInput, View } from 'react-native'
+import { Pressable, RefreshControl, SectionList, Text, TextInput, View } from 'react-native'
 
 import { Button } from '@/components/button'
 import { Icon } from '@/components/icon'
@@ -8,7 +8,7 @@ import { ListSuggestions } from '@/components/list-suggestions'
 import { ProductThumb } from '@/components/product-thumb'
 import { ConnectionError, LoadingView, StateView } from '@/components/state-view'
 import { Stepper } from '@/components/stepper'
-import { reportError } from '@/lib/alert'
+import { reportError, showAlert } from '@/lib/alert'
 import { errorMessage } from '@/lib/api'
 import { feedback } from '@/lib/feedback'
 import { suggestedQty } from '@/lib/suggest'
@@ -92,7 +92,7 @@ export default function ListScreen() {
       feedback.success()
     } catch (e) {
       // putAway removes each row right after storing it, so retrying is safe
-      Alert.alert('No se terminó de guardar', `${errorMessage(e)} Lo que quedó tildado todavía no se guardó; podés reintentar.`)
+      showAlert('No se terminó de guardar', `${errorMessage(e)} Lo que quedó tildado todavía no se guardó; podés reintentar.`)
     } finally {
       setBusy(null)
     }
@@ -299,7 +299,7 @@ const ListRow = memo(function ListRow({ row }: { row: ShoppingRow }) {
       <Pressable
         onPress={onToggle}
         accessibilityRole="checkbox"
-        accessibilityState={{ checked: row.checked }}
+        aria-checked={row.checked}
         accessibilityLabel={name}
         style={({ pressed }) => ({
           flex: 1,

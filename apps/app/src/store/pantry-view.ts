@@ -1,4 +1,4 @@
-import Storage from 'expo-sqlite/kv-store'
+import Storage from '@/lib/storage'
 import { create } from 'zustand'
 
 /** How the Despensa list is grouped, sorted and filtered. Remembered on this phone. */

@@ -1,9 +1,10 @@
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Text, View, type TextInputInstance } from 'react-native'
 
 import { Button } from '@/components/button'
 import { Field } from '@/components/field'
+import { closeSheet, Sheet } from '@/components/sheet'
 import { api, errorMessage } from '@/lib/api'
 import { manualBarcode } from '@/lib/barcode'
 import { feedback } from '@/lib/feedback'
@@ -61,12 +62,12 @@ export default function NewProductSheet() {
       })
       saved.current = true
       if (fromScan) {
-        router.back()
+        closeSheet()
         await completePending(product)
       } else {
         await useStock.getState().adjustProduct(product, 1)
         feedback.success()
-        router.back()
+        closeSheet()
       }
     } catch (e) {
       // keep the sheet open with what they typed
@@ -78,56 +79,58 @@ export default function NewProductSheet() {
   }
 
   return (
-    <View style={{ padding: space.xl, paddingTop: space.xxl, gap: space.lg }}>
-      <View style={{ gap: space.xs }}>
-        <Text style={[t.title, { color: c.text }]}>{fromScan ? 'Producto nuevo' : 'Producto sin código'}</Text>
-        <Text style={[t.callout, { color: c.text2, lineHeight: 21 }]}>
-          {fromScan ? (
-            <>
-              Ningún catálogo conoce el código{' '}
-              <Text selectable style={{ color: c.text, fontVariant: ['tabular-nums'] }}>
-                {barcode}
-              </Text>
-              . Ponele un nombre y queda guardado para la próxima.
-            </>
-          ) : (
-            'Para cosas sueltas o caseras: fruta, carne, frascos. Se guarda en la despensa con 1 unidad.'
-          )}
-        </Text>
+    <Sheet title={fromScan ? 'Producto nuevo' : 'Producto sin código'}>
+      <View style={{ padding: space.xl, paddingTop: space.xxl, gap: space.lg }}>
+        <View style={{ gap: space.xs }}>
+          <Text style={[t.title, { color: c.text }]}>{fromScan ? 'Producto nuevo' : 'Producto sin código'}</Text>
+          <Text style={[t.callout, { color: c.text2, lineHeight: 21 }]}>
+            {fromScan ? (
+              <>
+                Ningún catálogo conoce el código{' '}
+                <Text selectable style={{ color: c.text, fontVariant: ['tabular-nums'] }}>
+                  {barcode}
+                </Text>
+                . Ponele un nombre y queda guardado para la próxima.
+              </>
+            ) : (
+              'Para cosas sueltas o caseras: fruta, carne, frascos. Se guarda en la despensa con 1 unidad.'
+            )}
+          </Text>
+        </View>
+
+        <Field
+          label="Nombre"
+          value={name}
+          onChangeText={setName}
+          placeholder="Ej: Yerba Playadito 1 kg"
+          autoFocus
+          autoCapitalize="sentences"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => brandRef.current?.focus()}
+        />
+        <Field
+          ref={brandRef}
+          label="Marca (opcional)"
+          value={brand}
+          onChangeText={setBrand}
+          placeholder="Ej: Playadito"
+          autoCapitalize="words"
+          returnKeyType="done"
+          onSubmitEditing={save}
+        />
+
+        {error ? (
+          <Text selectable accessibilityRole="alert" style={[t.callout, { color: c.danger }]}>
+            {error}
+          </Text>
+        ) : null}
+
+        <View style={{ gap: space.xs }}>
+          <Button label={cta} onPress={save} loading={saving} stretch />
+          <Button label={fromScan ? 'Saltear este código' : 'Cancelar'} variant="quiet" onPress={closeSheet} stretch />
+        </View>
       </View>
-
-      <Field
-        label="Nombre"
-        value={name}
-        onChangeText={setName}
-        placeholder="Ej: Yerba Playadito 1 kg"
-        autoFocus
-        autoCapitalize="sentences"
-        returnKeyType="next"
-        submitBehavior="submit"
-        onSubmitEditing={() => brandRef.current?.focus()}
-      />
-      <Field
-        ref={brandRef}
-        label="Marca (opcional)"
-        value={brand}
-        onChangeText={setBrand}
-        placeholder="Ej: Playadito"
-        autoCapitalize="words"
-        returnKeyType="done"
-        onSubmitEditing={save}
-      />
-
-      {error ? (
-        <Text selectable accessibilityRole="alert" style={[t.callout, { color: c.danger }]}>
-          {error}
-        </Text>
-      ) : null}
-
-      <View style={{ gap: space.xs }}>
-        <Button label={cta} onPress={save} loading={saving} stretch />
-        <Button label={fromScan ? 'Saltear este código' : 'Cancelar'} variant="quiet" onPress={() => router.back()} stretch />
-      </View>
-    </View>
+    </Sheet>
   )
 }
