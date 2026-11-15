@@ -1,12 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 
 import { Button } from '@/components/button'
 import { Card } from '@/components/card'
 import { PriceList } from '@/components/price-list'
 import { ProductThumb } from '@/components/product-thumb'
-import { StateView } from '@/components/state-view'
+import { ConnectionError, LoadingView, StateView } from '@/components/state-view'
 import { Stepper } from '@/components/stepper'
 import { confirmDestructive, reportError } from '@/lib/alert'
 import { suggestedQty } from '@/lib/suggest'
@@ -20,10 +20,22 @@ export default function ItemScreen() {
   const { c } = useTheme()
   const { id } = useLocalSearchParams<{ id: string }>()
   const row = useStock((s) => s.items.find((r) => r.id === id))
-  const { adjust, setMinQty, remove } = useStock()
+  const { adjust, setMinQty, remove, status, error, fetch } = useStock()
   const onList = useShopping((s) => isOnList(s.items, row?.productId))
   const addToList = useShopping((s) => s.addProduct)
   const [adding, setAdding] = useState(false)
+
+  // opened directly (a reload or a shared link on web): nothing has loaded the pantry yet
+  useEffect(() => {
+    if (useStock.getState().status === 'idle') {
+      void fetch()
+      void useShopping.getState().fetch()
+    }
+  }, [fetch])
+
+  if (!row && status !== 'ready') {
+    return status === 'error' ? <ConnectionError message={error} onRetry={() => fetch()} /> : <LoadingView />
+  }
 
   if (!row) {
     return (
