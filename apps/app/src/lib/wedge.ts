@@ -11,7 +11,10 @@
  *  1. it began on an empty field, so it is the whole text (never a mix of
  *     something typed by hand plus a scan);
  *  2. it is at least `minChars` long and only digits (retail codes are);
- *  3. the field then stays quiet for `idleMs`.
+ *  3. it is not a single digit repeated ("5555555"): a held-down key
+ *     auto-repeats every ~30 ms and would otherwise look like a reader, and
+ *     no retail code is one repeated digit;
+ *  4. the field then stays quiet for `idleMs`.
  *
  * People type far slower than 80 ms per key, so every keystroke starts a new
  * run and nothing typed by hand ever auto-submits; it waits for Enter.
@@ -68,7 +71,7 @@ export function createWedgeDetector(cfg: WedgeConfig = DEFAULT_WEDGE) {
       if (quiet < cfg.idleMs) return { wait: cfg.idleMs - quiet }
       const code = text
       run = null
-      if (code.length < cfg.minChars || !/^\d+$/.test(code)) return null
+      if (code.length < cfg.minChars || !/^\d+$/.test(code) || /^(\d)\1*$/.test(code)) return null
       text = ''
       return { submit: code }
     },
