@@ -57,6 +57,31 @@ export function myMarkets(markets: MarketPrice[]): MyPrice[] {
     .sort((a, b) => a.unitPrice - b.unitPrice)
 }
 
+export type PriceSpread = {
+  /** how much less our cheapest charges than our most expensive, in whole % (0 with fewer than two markets) */
+  percent: number
+  /** one-line answer to "is it worth choosing?"; null with fewer than two markets */
+  summary: string | null
+  /** whether the cheapest is far enough ahead to call out as "El más barato" */
+  highlightCheapest: boolean
+}
+
+/** Spread between our cheapest and most expensive market. Takes `myMarkets()` output (cheapest first). */
+export function priceSpread(markets: MyPrice[]): PriceSpread {
+  if (markets.length < 2) return { percent: 0, summary: null, highlightCheapest: false }
+  const cheapest = markets[0]
+  const priciest = markets[markets.length - 1]
+  const percent = Math.round((1 - cheapest.unitPrice / priciest.unitPrice) * 100)
+  return {
+    percent,
+    summary:
+      percent >= 3
+        ? `En ${cheapest.market} pagás ${percent}% menos que en ${priciest.market}`
+        : 'Cuesta casi lo mismo en todos',
+    highlightCheapest: percent >= 1,
+  }
+}
+
 /** The stores as a Spanish list, e.g. "Coto, Carrefour, Easy, Farmacity, Jumbo, Sodimac, Dia, Disco ni Vea". */
 export function myMarketsLabel(): string {
   return `${MY_MARKETS.slice(0, -1).join(', ')} ni ${MY_MARKETS[MY_MARKETS.length - 1]}`
