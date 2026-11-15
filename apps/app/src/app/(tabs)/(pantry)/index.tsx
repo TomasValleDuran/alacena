@@ -1,6 +1,6 @@
 import { router, Stack, useFocusEffect } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pressable, RefreshControl, SectionList, Text, View } from 'react-native'
+import { Pressable, RefreshControl, SectionList, Text, TextInput, View } from 'react-native'
 
 import { Button, IconButton } from '@/components/button'
 import { Chips } from '@/components/chips'
@@ -34,6 +34,8 @@ function backfillCategoriesOnce(items: Row[]) {
       backfillRequested = false // try again next time
     })
 }
+
+const WEB = process.env.EXPO_OS === 'web'
 
 export default function PantryScreen() {
   const { c } = useTheme()
@@ -93,14 +95,16 @@ export default function PantryScreen() {
   const header = (
     <Stack.Screen
       options={{
-        headerSearchBarOptions: {
-          placeholder: 'Buscar en la despensa',
-          hideWhenScrolling: true,
-          onChangeText: (e) => setQuery(e.nativeEvent.text),
-          onCancelButtonPress: () => setQuery(''),
-          // web's JS search field never fires onCancelButtonPress; closing it calls onClose
-          onClose: () => setQuery(''),
-        },
+        // web: the header's JS search button has no accessible name, so the list gets its own field
+        headerSearchBarOptions: WEB
+          ? undefined
+          : {
+              placeholder: 'Buscar en la despensa',
+              hideWhenScrolling: true,
+              onChangeText: (e) => setQuery(e.nativeEvent.text),
+              onCancelButtonPress: () => setQuery(''),
+              onClose: () => setQuery(''),
+            },
         // the wide web sidebar already has "Ajustes"
         headerRight: hasSidebar
           ? undefined
@@ -153,6 +157,30 @@ export default function PantryScreen() {
         ListHeaderComponent={
           items.length > 0 ? (
             <View style={{ paddingBottom: space.xs }}>
+              {WEB ? (
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Buscar en la despensa"
+                  accessibilityLabel="Buscar en la despensa"
+                  inputMode="search"
+                  placeholderTextColor={c.text2}
+                  style={[
+                    t.body,
+                    {
+                      minHeight: 44,
+                      marginHorizontal: space.lg,
+                      marginBottom: space.sm,
+                      paddingHorizontal: space.md,
+                      borderRadius: radius.md,
+                      borderWidth: 1,
+                      borderColor: c.separator,
+                      backgroundColor: c.surface,
+                      color: c.text,
+                    },
+                  ]}
+                />
+              ) : null}
               <Chips<PantryFilter>
                 value={filter}
                 onChange={setFilter}

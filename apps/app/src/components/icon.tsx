@@ -27,6 +27,7 @@ const ICONS = {
   checked: { ios: 'checkmark.circle.fill', android: 'check_circle', cp: 59500 },
   unchecked: { ios: 'circle', android: 'radio_button_unchecked', cp: 59446 },
   close: { ios: 'xmark', android: 'close', cp: 58829 },
+  back: { ios: 'chevron.left', android: 'arrow_back', cp: 58820 },
   undo: { ios: 'arrow.uturn.backward', android: 'undo', cp: 57702 },
   cartAdd: { ios: 'cart.badge.plus', android: 'add_shopping_cart', cp: 59476 },
   cart: { ios: 'cart', android: 'shopping_cart', cp: 59596 },

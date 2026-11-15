@@ -1,10 +1,12 @@
-import { router } from 'expo-router'
 import Head from 'expo-router/head'
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 
+import { goBack } from '@/lib/nav'
 import { overlay, radius, space } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
+
+import { IconButton } from './button'
 
 /**
  * Web sheet: the route is a transparent modal (see app/_layout.tsx), so this
@@ -62,6 +64,10 @@ export function Sheet({ title, children }: { title: string; children: ReactNode 
         style={[styles.card, { backgroundColor: c.surface }, dark && { borderWidth: 1, borderColor: c.separator }]}
       >
         <ScrollView keyboardShouldPersistTaps="handled">{children}</ScrollView>
+        {/* after the content in the DOM, so a field inside keeps first focus */}
+        <View style={styles.close}>
+          <IconButton icon="close" label="Cerrar" onPress={closeSheet} />
+        </View>
       </View>
     </View>
   )
@@ -69,8 +75,7 @@ export function Sheet({ title, children }: { title: string; children: ReactNode 
 
 /** Close the current sheet; after a cold load of a sheet URL there's nothing to go back to. */
 export function closeSheet() {
-  if (router.canGoBack()) router.back()
-  else router.replace('/')
+  goBack()
 }
 
 const FOCUSABLE = 'a[href], button, input, textarea, select, [tabindex]:not([tabindex="-1"])'
@@ -110,4 +115,5 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     boxShadow: '0 12px 40px rgba(0, 0, 0, 0.25)',
   },
+  close: { position: 'absolute', top: space.sm, right: space.sm },
 })

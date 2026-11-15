@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 
@@ -9,6 +9,7 @@ import { ProductThumb } from '@/components/product-thumb'
 import { ConnectionError, LoadingView, StateView } from '@/components/state-view'
 import { Stepper } from '@/components/stepper'
 import { confirmDestructive, reportError } from '@/lib/alert'
+import { goBack } from '@/lib/nav'
 import { suggestedQty } from '@/lib/suggest'
 import { stockLevel } from '@/lib/types'
 import { isOnList, useShopping } from '@/store/shopping'
@@ -41,7 +42,7 @@ export default function ItemScreen() {
     return (
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ flexGrow: 1 }}>
         <StateView icon="box" title="Ya no está en la despensa" body="Puede que se haya quitado desde otro dispositivo.">
-          <Button label="Volver" variant="secondary" onPress={() => router.back()} />
+          <Button label="Volver" variant="secondary" onPress={goBack} />
         </StateView>
       </ScrollView>
     )
@@ -145,7 +146,7 @@ export default function ItemScreen() {
               message: 'Deja de aparecer en la despensa. El producto queda en el catálogo para la próxima vez que lo escanees.',
               confirm: 'Quitar',
               onConfirm: () => {
-                router.back()
+                goBack()
                 remove(row).catch((e) => reportError(e, 'No se pudo quitar'))
               },
             })
