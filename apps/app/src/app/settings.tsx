@@ -68,7 +68,7 @@ export default function SettingsSheet() {
             <Text style={[t.callout, { color: c.accent, fontWeight: '600' }]}>Conectado ✓</Text>
           ) : probe.state === 'fail' ? (
             <Text style={[t.callout, { color: c.danger }]}>
-              No responde. ¿Está corriendo el backend y el teléfono en la misma red?
+              No responde. ¿El backend está corriendo y en la misma red que este dispositivo?
             </Text>
           ) : null}
         </View>

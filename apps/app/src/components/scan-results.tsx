@@ -4,7 +4,7 @@ import { reportError } from '@/lib/alert'
 import { feedback } from '@/lib/feedback'
 import { stockLevel } from '@/lib/types'
 import { useScan, type LogEntry } from '@/store/scan'
-import { useShopping } from '@/store/shopping'
+import { isOnList, useShopping } from '@/store/shopping'
 import { useStock } from '@/store/stock'
 import { radius, space, type as t } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
@@ -20,11 +20,6 @@ import { Stepper } from './stepper'
  * drive `useScan` / `useStock` / `useShopping` themselves and carry no
  * positioning: the screen stacks them where it wants.
  */
-
-/** Whether the product is on the shopping list and not yet ticked off. */
-function useOnList(productId: string | undefined) {
-  return useShopping((s) => productId != null && s.items.some((r) => r.productId === productId && !r.checked))
-}
 
 /** Guardar / Usar: units per scan + what this session did, with undo. */
 export function SessionPanel() {
@@ -83,7 +78,7 @@ export function SessionPanel() {
 export function LogRow({ entry }: { entry: LogEntry }) {
   const { c } = useTheme()
   const undo = useScan((s) => s.undo)
-  const onList = useOnList(entry.product.id)
+  const onList = useShopping((s) => isOnList(s.items, entry.product.id))
   const addToList = useShopping((s) => s.addProduct)
   const sign = entry.delta > 0 ? '+' : '−'
   const ranOut = entry.total === 0 && entry.delta < 0
@@ -142,7 +137,7 @@ export function CheckResult() {
   const row = useStock((s) => (product ? s.items.find((r) => r.productId === product.id) : undefined))
   const adjust = useStock((s) => s.adjust)
   const adjustProduct = useStock((s) => s.adjustProduct)
-  const onList = useOnList(product?.id)
+  const onList = useShopping((s) => isOnList(s.items, product?.id))
   const addToList = useShopping((s) => s.addProduct)
 
   if (!product) {
@@ -168,7 +163,9 @@ export function CheckResult() {
             {product.name}
           </Text>
           <Text
-            accessibilityLiveRegion="polite"
+            // Android announces the answer; the web screen has its own always-mounted
+            // live region (this one mounts with its text, which browsers don't announce)
+            accessibilityLiveRegion={process.env.EXPO_OS === 'web' ? undefined : 'polite'}
             style={[t.title, { color: level === 'out' ? c.danger : level === 'low' ? c.warn : c.accent }]}
           >
             {answer}

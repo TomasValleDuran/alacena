@@ -30,7 +30,7 @@ export function Chips<K extends string>({
           <Pressable
             key={o.key}
             accessibilityRole="tab"
-            accessibilityState={{ selected }}
+            aria-selected={selected}
             onPress={() => {
               if (!selected) feedback.tick()
               onChange(o.key)

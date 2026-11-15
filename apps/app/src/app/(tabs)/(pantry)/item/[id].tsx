@@ -11,7 +11,7 @@ import { Stepper } from '@/components/stepper'
 import { confirmDestructive, reportError } from '@/lib/alert'
 import { suggestedQty } from '@/lib/suggest'
 import { stockLevel } from '@/lib/types'
-import { useShopping } from '@/store/shopping'
+import { isOnList, useShopping } from '@/store/shopping'
 import { useStock } from '@/store/stock'
 import { radius, space, type as t } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
@@ -21,7 +21,7 @@ export default function ItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const row = useStock((s) => s.items.find((r) => r.id === id))
   const { adjust, setMinQty, remove } = useStock()
-  const onList = useShopping((s) => (row ? s.items.some((r) => r.productId === row.productId && !r.checked) : false))
+  const onList = useShopping((s) => isOnList(s.items, row?.productId))
   const addToList = useShopping((s) => s.addProduct)
   const [adding, setAdding] = useState(false)
 

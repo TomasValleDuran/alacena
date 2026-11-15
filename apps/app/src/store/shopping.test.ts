@@ -2,7 +2,7 @@ import { api } from '@/lib/api'
 import { deferred } from '@/test-utils/mock-api'
 import { product, shoppingRow, stockRow } from '@/test-utils/factories'
 
-import { useShopping } from './shopping'
+import { isOnList, useShopping } from './shopping'
 import { useStock } from './stock'
 
 jest.mock('@/lib/api', () => jest.requireActual('@/test-utils/mock-api').mockApiModule())
@@ -18,6 +18,25 @@ beforeEach(() => {
   jest.resetAllMocks()
   useShopping.setState(initialShopping, true)
   useStock.setState(initialStock, true)
+})
+
+describe('isOnList', () => {
+  const list = [
+    row('a', { productId: 'milk', checked: false }),
+    row('b', { productId: 'rice', checked: true }),
+    row('c', { productId: null, name: 'pilas' }),
+  ]
+
+  it('is true only for a product with an unticked row', () => {
+    expect(isOnList(list, 'milk')).toBe(true)
+    expect(isOnList(list, 'rice')).toBe(false) // bought already
+    expect(isOnList(list, 'yerba')).toBe(false)
+  })
+
+  it('no product id is never on the list (even with loose rows present)', () => {
+    expect(isOnList(list, undefined)).toBe(false)
+    expect(isOnList(list, null)).toBe(false)
+  })
 })
 
 describe('fetch', () => {

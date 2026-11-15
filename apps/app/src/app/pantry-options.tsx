@@ -60,7 +60,7 @@ export default function PantryOptionsSheet() {
 
         <Button label="Listo" onPress={closeSheet} stretch />
         <Text style={[t.footnote, { color: c.text2, textAlign: 'center', marginTop: -space.sm }]}>
-          Se recuerda en este teléfono.
+          Se recuerda en este dispositivo.
         </Text>
       </View>
     </Sheet>

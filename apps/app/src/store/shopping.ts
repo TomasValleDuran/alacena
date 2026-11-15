@@ -24,6 +24,15 @@ type ShoppingState = {
   clearChecked: () => Promise<void>
 }
 
+/**
+ * Whether the product is on the list and not yet ticked off. A plain function
+ * so it works as a selector — `useShopping((s) => isOnList(s.items, id))` —
+ * and over an items array already in hand.
+ */
+export function isOnList(items: ShoppingRow[], productId: string | null | undefined): boolean {
+  return productId != null && items.some((r) => r.productId === productId && !r.checked)
+}
+
 export const useShopping = create<ShoppingState>((set, get) => {
   function patchRow(id: string, patch: Partial<ShoppingRow>) {
     set({ items: get().items.map((r) => (r.id === id ? { ...r, ...patch } : r)) })
