@@ -55,6 +55,12 @@ describe('fetch', () => {
     expect(useStock.getState().status).toBe('idle')
   })
 
+  it('an unexpected server answer is an error state, never items: null', async () => {
+    mocked.getStock.mockRejectedValue(new ApiError('El servidor respondió algo inesperado. Revisá la dirección en Ajustes.', 200))
+    await useStock.getState().fetch()
+    expect(useStock.getState()).toMatchObject({ status: 'error', items: [] })
+  })
+
   it('a failed first load becomes the error state', async () => {
     mocked.getStock.mockRejectedValue(new ApiError('No hay conexión con el servidor.', null))
     await useStock.getState().fetch()
