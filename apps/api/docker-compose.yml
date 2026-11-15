@@ -17,5 +17,21 @@ services:
     volumes:
       - alacena-pgdata:/var/lib/postgresql/data
 
+  # API + web app in one container. Opt-in so `docker compose up -d db` is unchanged:
+  #   docker compose --profile app up -d --build
+  app:
+    profiles: ["app"]
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://alacena:alacena@db:5432/alacena?schema=public
+      PORT: "3001"
+    ports:
+      - "3001:3001"
+
 volumes:
   alacena-pgdata:
