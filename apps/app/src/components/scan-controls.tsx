@@ -51,7 +51,7 @@ export function ModeSwitch({ style }: { style?: StyleProp<ViewStyle> }) {
           <Pressable
             key={m}
             accessibilityRole="tab"
-            accessibilityState={{ selected }}
+            aria-selected={selected}
             accessibilityLabel={MODE_COPY[m].label}
             accessibilityHint={MODE_COPY[m].hint}
             onPress={() => {
@@ -91,7 +91,7 @@ export function GlassIcon({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ selected }}
+      aria-selected={selected}
       onPress={onPress}
       style={({ pressed }) => ({
         width: 48,
@@ -148,7 +148,7 @@ export function ScanNotice() {
     <Pressable
       onPress={dismissNotice}
       accessibilityRole="alert"
-      accessibilityHint="Toca para cerrar"
+      accessibilityHint="Cierra el aviso"
       style={{
         backgroundColor: overlay.glass,
         borderRadius: radius.md,

@@ -60,7 +60,7 @@ export function ListSuggestions({
             accessibilityRole="button"
             accessibilityLabel={`${row.product.name}, ${meta}`}
             accessibilityHint={listed ? 'Ya está en la lista' : 'Lo agrega a la lista'}
-            accessibilityState={{ disabled: listed || disabled }}
+            aria-disabled={listed || !!disabled}
             disabled={listed || disabled}
             onPress={() => onPickProduct(row)}
             style={({ pressed }) => ({
