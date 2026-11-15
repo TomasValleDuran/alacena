@@ -13,7 +13,7 @@ import { useTheme } from '@/theme/use-theme'
  * goes back to whatever opened it.
  */
 export function Sheet({ title, children }: { title: string; children: ReactNode }) {
-  const { c } = useTheme()
+  const { c, dark } = useTheme()
   const card = useRef<ComponentRef<typeof View>>(null)
   // read during the first render, before an autoFocus field inside takes focus
   const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null))
@@ -31,9 +31,11 @@ export function Sheet({ title, children }: { title: string; children: ReactNode 
         trapTab(e, el)
       }
     }
-    document.addEventListener('keydown', onKeyDown)
+    // capture phase: RNW TextInput stops keydown propagation, so a bubbling
+    // listener would miss Escape/Tab while a field inside has focus
+    document.addEventListener('keydown', onKeyDown, true)
     return () => {
-      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('keydown', onKeyDown, true)
       if (opener?.isConnected) opener.focus()
     }
   }, [opener])
@@ -56,7 +58,8 @@ export function Sheet({ title, children }: { title: string; children: ReactNode 
         aria-modal
         aria-label={title}
         tabIndex={-1}
-        style={[styles.card, { backgroundColor: c.surface }]}
+        // in dark mode the shadow barely shows, so the card gets a hairline edge
+        style={[styles.card, { backgroundColor: c.surface }, dark && { borderWidth: 1, borderColor: c.separator }]}
       >
         <ScrollView keyboardShouldPersistTaps="handled">{children}</ScrollView>
       </View>
