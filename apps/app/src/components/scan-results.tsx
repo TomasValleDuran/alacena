@@ -163,7 +163,9 @@ export function CheckResult() {
             {product.name}
           </Text>
           <Text
-            accessibilityLiveRegion="polite"
+            // Android announces the answer; the web screen has its own always-mounted
+            // live region (this one mounts with its text, which browsers don't announce)
+            accessibilityLiveRegion={process.env.EXPO_OS === 'web' ? undefined : 'polite'}
             style={[t.title, { color: level === 'out' ? c.danger : level === 'low' ? c.warn : c.accent }]}
           >
             {answer}
