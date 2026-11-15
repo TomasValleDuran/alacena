@@ -1,11 +1,12 @@
 import { router } from 'expo-router'
 import Head from 'expo-router/head'
 import { TabList, TabSlot, TabTrigger, Tabs, type TabTriggerSlotProps } from 'expo-router/ui'
-import { Pressable, Text, View, useWindowDimensions } from 'react-native'
+import { Pressable, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Path, Rect } from 'react-native-svg'
 
 import { Icon, type IconName } from '@/components/icon'
+import { useHasSidebar } from '@/lib/layout'
 import { useShopping } from '@/store/shopping'
 import { radius, space, type as t } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
@@ -13,10 +14,9 @@ import { useTheme } from '@/theme/use-theme'
 /**
  * Web tabs. expo-router's native tabs render a floating pill on web that sits
  * over the stack headers, so web gets its own shell on the headless
- * expo-router/ui tabs: a bottom bar on narrow windows, a sidebar from 900 px.
+ * expo-router/ui tabs: a bottom bar on narrow windows, a sidebar from `SIDEBAR_MIN_WIDTH` (`lib/layout.web.ts`).
  * Screens (and their headers) take their width from one centred column.
  */
-const WIDE = 900
 const COLUMN = 760
 const SIDEBAR = 220
 
@@ -31,7 +31,7 @@ export const unstable_settings = { anchor: '(pantry)' }
 
 export default function TabsLayout() {
   const { c } = useTheme()
-  const wide = useWindowDimensions().width >= WIDE
+  const wide = useHasSidebar()
   const insets = useSafeAreaInsets()
   const toBuy = useShopping((s) => s.items.filter((r) => !r.checked).length)
 

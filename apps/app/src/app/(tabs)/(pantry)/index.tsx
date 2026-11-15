@@ -10,6 +10,7 @@ import { StockRow } from '@/components/stock-row'
 import { reportError } from '@/lib/alert'
 import { api } from '@/lib/api'
 import { feedback } from '@/lib/feedback'
+import { useHasSidebar } from '@/lib/layout'
 import { buildSections, matchesFilter, type PantrySection } from '@/lib/pantry-sections'
 import type { StockRow as Row } from '@/lib/types'
 import { GROUP_LABEL, SORT_LABEL, usePantryView, type PantryFilter } from '@/store/pantry-view'
@@ -37,6 +38,7 @@ function backfillCategoriesOnce(items: Row[]) {
 export default function PantryScreen() {
   const { c } = useTheme()
   const { items, status, error, refreshing, fetch, adjust } = useStock()
+  const hasSidebar = useHasSidebar()
   const fetchShopping = useShopping((s) => s.fetch)
   const shopping = useShopping((s) => s.items)
   const { filter, setFilter, groupBy, sortBy, collapsed, toggleSection } = usePantryView()
@@ -99,9 +101,10 @@ export default function PantryScreen() {
           // web's JS search field never fires onCancelButtonPress; closing it calls onClose
           onClose: () => setQuery(''),
         },
-        headerRight: () => (
-          <IconButton icon="settings" label="Ajustes" onPress={() => router.push('/settings')} />
-        ),
+        // the wide web sidebar already has "Ajustes"
+        headerRight: hasSidebar
+          ? undefined
+          : () => <IconButton icon="settings" label="Ajustes" onPress={() => router.push('/settings')} />,
       }}
     />
   )

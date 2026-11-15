@@ -5,6 +5,7 @@ import { HIT, radius, type as t } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
 
 import { Icon } from './icon'
+import { stepButtonProps, stepperGroupProps, stepValueProps } from './stepper-a11y'
 
 type Props = {
   value: number
@@ -28,7 +29,8 @@ type Props = {
 /**
  * − value +. Each button is a full 48pt hit target even when the glyph well
  * is drawn smaller in compact rows. Exposed to VoiceOver/TalkBack as one
- * adjustable control (swipe up/down) rather than three loose elements.
+ * adjustable control (swipe up/down) rather than three loose elements; on
+ * the web as a labelled group of two named buttons (see `stepper-a11y`).
  */
 export function Stepper({
   value,
@@ -64,15 +66,7 @@ export function Stepper({
 
   return (
     <View
-      accessible
-      accessibilityRole="adjustable"
-      accessibilityLabel={label}
-      accessibilityValue={{ text: String(value) }}
-      onAccessibilityAction={(e) => {
-        if (e.nativeEvent.actionName === 'increment') step(1)
-        if (e.nativeEvent.actionName === 'decrement') step(-1)
-      }}
-      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      {...stepperGroupProps(label, value, step)}
       style={{ flexDirection: 'row', alignItems: 'center' }}
     >
       <StepButton
@@ -81,8 +75,10 @@ export function Stepper({
         disabled={atMin && !showTrash}
         onPress={() => step(-1)}
         danger={showTrash}
+        a11y={stepButtonProps(showTrash ? 'remove' : 'minus', label)}
       />
       <Text
+        {...stepValueProps()}
         style={[
           large ? t.largeNumber : { ...t.headline, fontVariant: ['tabular-nums'] },
           { minWidth: valueWidth ?? (large ? 64 : 28), textAlign: 'center', color: numberColor },
@@ -90,7 +86,13 @@ export function Stepper({
       >
         {format(value)}
       </Text>
-      <StepButton icon="add" well={well} disabled={atMax} onPress={() => step(1)} />
+      <StepButton
+        icon="add"
+        well={well}
+        disabled={atMax}
+        onPress={() => step(1)}
+        a11y={stepButtonProps('plus', label)}
+      />
     </View>
   )
 }
@@ -101,12 +103,14 @@ function StepButton({
   disabled,
   danger,
   onPress,
+  a11y,
 }: {
   icon: 'add' | 'remove' | 'trash'
   well: number
   disabled?: boolean
   danger?: boolean
   onPress: () => void
+  a11y: object
 }) {
   const { c } = useTheme()
   const pad = Math.max(0, (HIT - well) / 2)
@@ -115,7 +119,7 @@ function StepButton({
       onPress={onPress}
       disabled={disabled}
       hitSlop={pad}
-      importantForAccessibility="no"
+      {...a11y}
       style={({ pressed }) => ({
         width: well,
         height: well,

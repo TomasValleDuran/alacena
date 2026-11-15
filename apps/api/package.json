@@ -13,7 +13,9 @@
     "dev:local": "DATABASE_URL='postgresql://alacena:alacena@localhost:5433/alacena?schema=public' PORT=3001 tsx watch src/index.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "migrate:local": "DATABASE_URL='postgresql://alacena:alacena@localhost:5433/alacena?schema=public' prisma migrate deploy",
+    "db:up": "docker compose up -d db"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

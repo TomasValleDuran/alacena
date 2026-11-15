@@ -31,7 +31,7 @@ const BAND = '#0B0D0A'
 /** dimmer than overlay.text2 so the sample code doesn't read as typed; still 5:1 on the field */
 const PLACEHOLDER = 'rgba(255, 255, 255, 0.5)'
 
-export default function ScanScreen() {
+export function ScanScreen() {
   const { c, dark } = useTheme()
   // a 13-digit code has to fit beside the search button on a 390 px phone
   const narrow = useWindowDimensions().width < 480

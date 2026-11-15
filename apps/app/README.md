@@ -8,7 +8,7 @@ The Expo app for Alacena. One codebase runs on iOS, Android and the web. Rules f
 - expo-router ~58 with typed routes (`experiments.typedRoutes`)
 - React Compiler (`experiments.reactCompiler`)
 - zustand 5 for state (`src/store`)
-- expo-camera for barcodes, expo-sqlite key-value store for preferences (native), localStorage on the web
+- expo-camera for barcodes on native (the web has no camera scanner), expo-sqlite key-value store for preferences (native), localStorage on the web
 - expo-image, react-native-svg, react-native-reanimated (splash), react-native-gesture-handler
 - Jest with `jest-expo`
 
@@ -24,7 +24,7 @@ Run from `apps/app` (or use the `app:*` aliases in the root `package.json`).
 | `npm run web` | Start the dev server and open the web app (`expo start --web`). |
 | `npm run lint` | `expo lint` (ESLint, `eslint-config-expo`). |
 | `npm test` | Jest. |
-| `npx tsc --noEmit` | Typecheck. There is no npm script for it. |
+| `npm run typecheck` | `tsc --noEmit`. |
 
 ## Screens
 
@@ -36,7 +36,7 @@ Tabs (`src/app/(tabs)`):
 |---|---|---|
 | `/` (`(pantry)/index.tsx`) | Despensa | The pantry: stock rows with quantity and reorder level. Search, filters (all, restock, out, in stock, on list), grouping (by aisle, by status, none) and sorting (name, quantity, recent). |
 | `/item/[id]` | (pushed from Despensa) | One product: stock, quantity controls, and prices per market from pricely.ar. |
-| `/scan` (`scan.tsx`) | Escanear | Barcode scanner with three modes: Guardar (add), Usar (use), Consultar (check). <!-- VERIFY: on web, this tab takes codes from a USB barcode reader or typed input (scan.web.tsx, in progress). --> |
+| `/scan` (`scan.tsx`) | Escanear | Barcode scanner with three modes: Guardar (add), Usar (use), Consultar (check). The route file is a thin wrapper around `ScanScreen` (see [Web scan](#web-scan)). |
 | `/list` (`(list)/list.tsx`) | Lista | Shopping list: add free text or a product, add low-stock items, check items off, put checked items away, clear checked items. |
 
 Sheets (`src/app`, presented as form sheets on native and dialogs on the web):
@@ -69,13 +69,21 @@ Platform differences live in sibling files, not in `Platform.OS` branches. Metro
 
 | Web file | Native file | Why |
 |---|---|---|
-| `src/app/(tabs)/_layout.web.tsx` | `src/app/(tabs)/_layout.tsx` | Native uses `NativeTabs` (system tab bar). The web uses `expo-router/ui` tabs: a bottom bar on narrow windows and a sidebar from 900 px. |
+| `src/app/(tabs)/_layout.web.tsx` | `src/app/(tabs)/_layout.tsx` | Native uses `NativeTabs` (system tab bar). The web uses `expo-router/ui` tabs: a bottom bar on narrow windows and a sidebar from 900 px (`SIDEBAR_MIN_WIDTH` in `src/lib/layout.web.ts`). |
 | `src/components/sheet.web.tsx` | `src/components/sheet.tsx` | Native routes are already form sheets, so `sheet.tsx` only passes children through. The web version draws a modal dialog over the tabs. |
 | `src/lib/alert.web.ts` | `src/lib/alert.ts` | `Alert.alert` does nothing in react-native-web. The web version uses the browser's dialogs. |
 | `src/lib/api-host.web.ts` | `src/lib/api-host.ts` | Native guesses the API from the Metro host's LAN IP. The web uses the page's own origin in production and the same host on port 3001 in development. |
 | `src/lib/storage.web.ts` | `src/lib/storage.ts` | Native uses expo-sqlite's key-value store. The web uses localStorage, so expo-sqlite (wasm) stays out of the web bundle. |
+| `src/lib/feedback.web.ts` | `src/lib/feedback.ts` | Native uses haptics. The web plays short tones per scan outcome and vibrates where the browser allows it. |
+| `src/lib/layout.web.ts` | `src/lib/layout.ts` | `useHasSidebar()`: always false on native (tablets keep the header buttons); on the web true from 900 px, where the sidebar replaces the bottom bar. The pantry header hides its settings gear when it is true. |
+| `src/components/scan-screen.web.tsx` | `src/components/scan-screen.tsx` | Native is the camera scanner (expo-camera). The web is the keyboard-wedge console. |
+| `src/components/stepper-a11y.web.ts` | `src/components/stepper-a11y.ts` | Native exposes the stepper as one adjustable element with increment and decrement actions. The web renders a labelled group with two named buttons ("Menos, ...", "Más, ...") and a live region for the value. |
 
-<!-- VERIFY: src/app/(tabs)/scan.web.tsx is in progress and is not in this worktree. Add it to this table once it lands. -->
+The scan screens are in `src/components`, not next to the route, on purpose: expo-router bundles every route file, `.web.tsx` siblings included, so a camera import in a route would ship `expo-camera` in the web export. `src/app/(tabs)/scan.tsx` only renders `<ScanScreen />`.
+
+## Web scan
+
+The web has no camera scanner. The Escanear tab (`scan-screen.web.tsx`) is a console with one code field that takes codes from a USB or Bluetooth barcode reader (they type the digits, usually followed by Enter) or typed by hand, with the same modes, session log and Consultar card as the phone. A burst of at least 6 digits typed in a few milliseconds into an empty field submits by itself after a short pause, unless it is one digit repeated (a held key); anything typed by hand waits for Enter (`src/lib/wedge.ts`). The field takes focus when the tab is shown and after a submit, mode change, undo or closed dialog, and printable keys go to it while nothing else is being edited, but it never steals focus from another field, an open dialog, a control reached with the keyboard, or on touch-only devices. The manual-entry sheet keeps focus in its field after Enter on the web too.
 
 ## Design tokens
 

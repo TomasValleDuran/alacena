@@ -50,6 +50,26 @@ function typeInto(
   }
 }
 
+describe('held key', () => {
+  it('a digit auto-repeating at 30 ms never auto-submits', () => {
+    const w = createWedgeDetector(cfg)
+    const run = typeInto(w, '5'.repeat(13), { gapMs: 30 })
+    expect(run.advance(run.last + 10_000)).toEqual([])
+  })
+
+  it('a fast burst of one repeated digit is not a scan either', () => {
+    const w = createWedgeDetector(cfg)
+    const run = typeInto(w, '0'.repeat(13), { gapMs: 5 })
+    expect(run.advance(run.last + 10_000)).toEqual([])
+  })
+
+  it('a real code that starts with repeated digits still submits', () => {
+    const w = createWedgeDetector(cfg)
+    const run = typeInto(w, '7777770410122', { gapMs: 5 })
+    expect(run.advance(run.last + 120)).toEqual(['7777770410122'])
+  })
+})
+
 describe('reader bursts', () => {
   it('a burst without Enter auto-submits once, after idleMs of quiet', () => {
     const w = createWedgeDetector(cfg)

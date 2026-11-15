@@ -3,17 +3,21 @@
   "private": true,
   "description": "Alacena monorepo: Expo app (apps/app), API (apps/api), tools and brand assets. No workspaces: each app keeps its own package.json and lockfile.",
   "scripts": {
+    "db:up": "npm --prefix apps/api run db:up",
+    "api:dev": "npm --prefix apps/api run dev:local",
+    "api:migrate": "npm --prefix apps/api run migrate:local",
+    "api:test": "npm --prefix apps/api test",
+    "api:lint": "npm --prefix apps/api run lint",
+    "api:typecheck": "npm --prefix apps/api run typecheck",
+    "api:build": "npm --prefix apps/api run build",
     "app:start": "npm --prefix apps/app run start",
+    "app:web": "npm --prefix apps/app run web",
     "app:ios": "npm --prefix apps/app run ios",
     "app:android": "npm --prefix apps/app run android",
-    "app:web": "npm --prefix apps/app run web",
+    "app:test": "npm --prefix apps/app test",
     "app:lint": "npm --prefix apps/app run lint",
-    "api:dev": "npm --prefix apps/api run dev",
-    "api:build": "npm --prefix apps/api run build",
-    "api:start": "npm --prefix apps/api run start",
-    "api:prisma:generate": "npm --prefix apps/api run prisma:generate",
-    "api:prisma:migrate": "npm --prefix apps/api run prisma:migrate",
-    "api:prisma:studio": "npm --prefix apps/api run prisma:studio",
-    "import:barcodes": "node tools/import-barcodes/import-barcodes.mjs"
+    "app:typecheck": "npm --prefix apps/app run typecheck",
+    "import:barcodes": "node tools/import-barcodes/import-barcodes.mjs",
+    "check": "npm run api:lint && npm run api:typecheck && npm run api:build && npm run api:test && npm run app:lint && npm run app:typecheck && npm run app:test"
   }
 }
