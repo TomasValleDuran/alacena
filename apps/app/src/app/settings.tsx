@@ -44,7 +44,7 @@ export default function SettingsSheet() {
         <View style={{ gap: space.xs }}>
           <Text style={[t.title, { color: c.text }]}>Servidor</Text>
           <Text style={[t.callout, { color: c.text2, lineHeight: 21 }]}>
-            Dirección de back-alacena. En casa suele ser la IP de la compu en la red Wi-Fi, puerto 3001.
+            Dirección del servidor de Alacena. En casa suele ser la IP de la compu en la red Wi-Fi, puerto 3001.
           </Text>
         </View>
 

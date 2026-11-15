@@ -1,4 +1,4 @@
-// Wire shapes from back-alacena (camelCase JSON: numbers + ISO date strings).
+// Wire shapes from the API (apps/api/src/serialize.ts) (camelCase JSON: numbers + ISO date strings).
 
 export type Product = {
   id: string
