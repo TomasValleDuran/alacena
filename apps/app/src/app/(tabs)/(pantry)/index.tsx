@@ -96,6 +96,8 @@ export default function PantryScreen() {
           hideWhenScrolling: true,
           onChangeText: (e) => setQuery(e.nativeEvent.text),
           onCancelButtonPress: () => setQuery(''),
+          // web's JS search field never fires onCancelButtonPress; closing it calls onClose
+          onClose: () => setQuery(''),
         },
         headerRight: () => (
           <IconButton icon="settings" label="Ajustes" onPress={() => router.push('/settings')} />
