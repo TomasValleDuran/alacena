@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native'
 
 import { suggestFromPantry } from '@/lib/suggest'
 import { stockLevel, type StockRow } from '@/lib/types'
-import { useShopping } from '@/store/shopping'
+import { isOnList, useShopping } from '@/store/shopping'
 import { useStock } from '@/store/stock'
 import { radius, space, type as t } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
@@ -31,10 +31,6 @@ export function ListSuggestions({
   const stock = useStock((s) => s.items)
   const shopping = useShopping((s) => s.items)
   const matches = useMemo(() => suggestFromPantry(stock, query), [stock, query])
-  const pending = useMemo(
-    () => new Set(shopping.filter((r) => !r.checked && r.productId).map((r) => r.productId!)),
-    [shopping],
-  )
   const text = query.trim()
   if (!text) return null
 
@@ -55,7 +51,7 @@ export function ListSuggestions({
       ) : null}
 
       {matches.map((row) => {
-        const listed = pending.has(row.productId)
+        const listed = isOnList(shopping, row.productId)
         const level = stockLevel(row.quantity, row.minQty)
         const meta = level === 'out' ? 'Agotado' : `Hay ${row.quantity} en casa${level === 'low' ? ' · quedan pocos' : ''}`
         return (
