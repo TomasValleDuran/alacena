@@ -14,36 +14,39 @@ There is no authentication yet. The API is meant for one household.
 
 ## Scripts
 
-Run from `apps/api`. The root `package.json` has `api:*` aliases for most of them.
+Run from `apps/api`. The root `package.json` has `api:*` aliases for the common ones (see the [root README](../../README.md#root-scripts)).
 
 | Script | What it does | Root alias |
 |---|---|---|
-| `npm run dev` | Dev server with reload (`tsx watch src/index.ts`). Uses the environment as it is. | `api:dev` |
-| `npm run dev:local` | Same, with `DATABASE_URL` forced to the local docker database (`localhost:5433/alacena`) and `PORT=3001`. | none |
+| `npm run db:up` | `docker compose up -d db`: start the local PostgreSQL. | `db:up` |
+| `npm run migrate:local` | `prisma migrate deploy` with `DATABASE_URL` forced to the local docker database (`localhost:5433/alacena`). | `api:migrate` |
+| `npm run dev:local` | Dev server with reload, `DATABASE_URL` forced to the local docker database and `PORT=3001`. The documented way to run locally. | `api:dev` |
+| `npm run dev` | Same server (`tsx watch src/index.ts`) with the environment as it is, so it uses whatever `DATABASE_URL` the shell has. | none |
 | `npm run build` | Compile TypeScript to `dist/` (`tsc`). | `api:build` |
-| `npm start` | Run `node dist/index.js`. Needs a build first. | `api:start` |
-| `npm run typecheck` | `tsc --noEmit` | none |
-| `npm run lint` | `eslint .` | none |
-| `npm test` | Vitest, against the test database (see [Testing](#testing)). | none |
-| `npm run prisma:generate` | Generate the Prisma client. | `api:prisma:generate` |
-| `npm run prisma:migrate` | `prisma migrate dev`: create and apply a migration. | `api:prisma:migrate` |
-| `npm run prisma:studio` | Prisma Studio, a browser UI for the database. | `api:prisma:studio` |
+| `npm start` | Run `node dist/index.js`. Needs a build first. | none |
+| `npm run typecheck` | `tsc --noEmit` | `api:typecheck` |
+| `npm run lint` | `eslint .` | `api:lint` |
+| `npm test` | Vitest, against the test database (see [Testing](#testing)). | `api:test` |
+| `npm run prisma:generate` | Generate the Prisma client. | none |
+| `npm run prisma:migrate` | `prisma migrate dev`: create and apply a new migration while developing. | none |
+| `npm run prisma:studio` | Prisma Studio, a browser UI for the database. | none |
 
-`prisma:migrate` and `prisma:studio` use whatever `DATABASE_URL` the Prisma CLI sees (the shell, or a `.env` file in `apps/api`). Set it to the local database. Do not run them against a deployed database.
+`prisma:migrate` and `prisma:studio` use whatever `DATABASE_URL` the Prisma CLI sees (the shell, or a `.env` file in `apps/api`). Set it to the local database first. Do not run them against a deployed database. Everything else above is safe to run without a `.env`.
 
 ## Environment variables
 
-Names and meaning come from `.env.example`. Copy it to `.env` for local use. The API process does not load `.env` files itself. The Prisma CLI does. <!-- VERIFY: Prisma CLI reads apps/api/.env; not run here (no node_modules in this worktree). --> `dev:local` and the test setup set their own values.
+Names and meaning come from `.env.example`. A `.env` is only needed for a real deployment; `dev:local`, `migrate:local` and the tests set their own values. The API process does not load `.env` files itself. Prisma's CLI loads one from `apps/api` when it exists (documented Prisma behaviour; not exercised here because no local script needs it).
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `DATABASE_URL` | none (required) | PostgreSQL connection string. Local value: `postgresql://alacena:alacena@localhost:5433/alacena?schema=public`. |
 | `PORT` | `3001` | Port the server listens on. The server listens on all interfaces, so phones on the same network can reach it. |
-| `ALLOWED_ORIGINS` | `http://localhost:8081` | Comma-separated list of browser origins allowed by CORS. Requests without an `Origin` header (native apps) are not affected. |
+| `ALLOWED_ORIGINS` | `http://localhost:8081` | Comma-separated list of browser origins allowed by CORS. Requests without an `Origin` header (native apps) are not affected. Not needed when the web app is served by this same server. |
+| `WEB_DIR` | `./public` | Directory with the exported web app (must contain `index.html`). When it exists the API serves it; otherwise only the API runs. Relative to the working directory. |
 
 ## Routes
 
-All routes are under `/api`, except `/health`. Bodies and responses are JSON. The shapes come from `src/serialize.ts`. The app's types depend on them, so change them with care.
+All routes are under `/api`, except `/health`. Any other `/api/...` path answers 404 `{ "error": "No encontrado" }` (never the web app's HTML). Bodies and responses are JSON. The shapes come from `src/serialize.ts`. The app's types depend on them, so change them with care.
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -78,7 +81,7 @@ Errors are `{ "error": "<message in Spanish>" }`. The central handler in `src/ht
 | 422 | `POST /api/products/resolve`: the barcode is 8, 12 or 13 digits and fails the check digit. |
 | 500 | Anything else. The body is `{ "error": "Algo salió mal" }` and the error is logged. |
 
-Exception: when `POST /api/products/resolve` finds nothing, it returns 404 with `{ "found": false }` and no `error` field. The app treats any 404 from this route as "not found" and offers manual entry.
+Exception: `POST /api/products/resolve` is the one non-`{ error }` 404: when it finds nothing it returns 404 with `{ "found": false }` and no `error` field. The app treats any 404 from this route as "not found" and offers manual entry.
 
 ## Product lookup
 
@@ -102,17 +105,18 @@ Prisma models map to three tables:
 
 Schema: `prisma/schema.prisma`. Migrations: `prisma/migrations/`.
 
-- Development: `npm run prisma:migrate` against the local database.
-- Deployment: `prisma migrate deploy` applies the committed migrations. <!-- VERIFY: the single-container image runs `prisma migrate deploy` on start; not yet in apps/api/Dockerfile in this worktree. -->
+- Development: `npm run prisma:migrate` creates a migration against the local database; `npm run migrate:local` applies the committed ones.
+- Deployment: the image runs `prisma migrate deploy` on every start (see [Deployment](#deployment)).
 
 ## Local database
 
 `docker-compose.yml` starts PostgreSQL 16 in a container called `alacena-db`, on host port `5433`, with user, password and database `alacena`. The port is 5433 so it does not clash with a Postgres on 5432.
 
 ```bash
-cd apps/api
-docker compose up -d
+npm run db:up        # from apps/api; `npm run db:up` also works from the repo root
 ```
+
+`docker-compose.yml` also has an `app` profile that builds and runs the API with the web app (see [Deployment](#deployment)). It is off unless you ask for it.
 
 ## Testing
 
@@ -122,26 +126,38 @@ docker compose up -d
 - `test/globalSetup.ts` refuses to run unless the URL is `localhost:5433` and the database name ends in `_test`. It creates the test database through `docker exec alacena-db createdb` if it is missing, then runs `prisma migrate deploy`.
 - `test/setup.ts` truncates the tables before each test and mocks pricely.ar and Open Food Facts. No test touches the network.
 
-The container must be running (`docker compose up -d`).
+The container must be running (`npm run db:up`).
 
 ## Deployment
 
-<!-- VERIFY: target design (single container): the API serves the exported web app from WEB_DIR (default ./public) when that directory exists. Not in this worktree yet. -->
-
-The API is packaged as one Docker image. The build runs from the repository root:
-
-<!-- VERIFY: build context is the repo root. The Dockerfile in this worktree still copies package.json from its own context (apps/api), so this command will not build yet. -->
+One Docker image holds the API and the exported web app. The build context is the repository root (the Dockerfile builds the Expo web export from `apps/app` and the API from `apps/api`):
 
 ```bash
-docker build -f apps/api/Dockerfile .
+docker build -f apps/api/Dockerfile -t alacena .
+docker run --rm -p 3001:3001 -e DATABASE_URL='<postgres connection string>' alacena
+```
+
+Or with compose, which starts the database too (from `apps/api`, using the `app` profile; the database stays on `localhost:5433`):
+
+```bash
+docker compose --profile app up -d --build
 ```
 
 The container:
 
-- runs `prisma migrate deploy` on start <!-- VERIFY: not in this worktree -->
-- serves the API on `PORT` (default 3001)
-- serves the exported web app from `WEB_DIR` (default `./public`) when that directory exists <!-- VERIFY: not in this worktree -->
+- runs `prisma migrate deploy` on every start, then `node dist/index.js`;
+- listens on `PORT` (default 3001);
+- serves the exported web app from `WEB_DIR` (default `./public`, where the image puts it) when `WEB_DIR/index.html` exists: static files, long-lived caching for `_expo/static/*`, no caching for `index.html` and `manifest.json`;
+- falls back to `index.html` for unknown GET paths without a file extension, so client-side routes load on a cold visit;
+- answers unknown `/api/...` paths with a JSON 404, never HTML.
 
-It needs `DATABASE_URL`, `PORT` and `ALLOWED_ORIGINS` (see [Environment variables](#environment-variables)). Use a hosted PostgreSQL connection string in production.
+The web build has no `EXPO_PUBLIC_API_URL`: it talks to its own origin, which is why `ALLOWED_ORIGINS` is not needed for it. Environment: `DATABASE_URL` (required), `PORT`, `ALLOWED_ORIGINS`, `WEB_DIR` (see [Environment variables](#environment-variables)). Use a hosted PostgreSQL connection string in production. `.dockerignore` at the repo root keeps `.env` files, tests, tools and docs out of the build context.
 
-The CI workflow `.github/workflows/ci.yml` builds the API on every push and pull request that touches `apps/api`. On push to `main` it pushes the image to GHCR. The publish job still uses `apps/api` as the build context. <!-- VERIFY: CI publish step must match the final Dockerfile build context. -->
+## CI
+
+`.github/workflows/ci.yml` runs on pushes to `main` and on pull requests to `main`. Jobs:
+
+- `changes`: decides what to run. Pushes to `main` always run everything; pull requests run `api` when `apps/api/`, `tools/fixtures/` or the workflow changed, and `app` when `apps/app/`, `tools/fixtures/` or the workflow changed.
+- `api`: with a PostgreSQL 16 service on port 5433, in `apps/api`: `npm ci`, `prisma generate`, lint, typecheck, build, tests.
+- `app`: in `apps/app`: `npm ci`, `tsc --noEmit`, `expo lint`, `jest --ci`, `expo export --platform web`.
+- `image`: only on push to `main`, after `api` and `app` both succeeded. Builds `apps/api/Dockerfile` with the repo root as context and pushes it to GHCR as `latest` and by commit SHA.
