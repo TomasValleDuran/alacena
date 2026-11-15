@@ -3,11 +3,13 @@ import { useState } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 
 import { Button } from '@/components/button'
+import { Card } from '@/components/card'
 import { PriceList } from '@/components/price-list'
 import { ProductThumb } from '@/components/product-thumb'
 import { StateView } from '@/components/state-view'
 import { Stepper } from '@/components/stepper'
 import { confirmDestructive, reportError } from '@/lib/alert'
+import { suggestedQty } from '@/lib/suggest'
 import { stockLevel } from '@/lib/types'
 import { useShopping } from '@/store/shopping'
 import { useStock } from '@/store/stock'
@@ -61,7 +63,7 @@ export default function ItemScreen() {
       </View>
 
       {/* quantity */}
-      <Section>
+      <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ gap: 2, flexShrink: 1 }}>
             <Text style={[t.headline, { color: c.text }]}>En casa</Text>
@@ -77,10 +79,10 @@ export default function ItemScreen() {
             onChange={(next) => adjust(row, next - row.quantity).catch((e) => reportError(e))}
           />
         </View>
-      </Section>
+      </Card>
 
       {/* threshold */}
-      <Section>
+      <Card>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ gap: 2, flexShrink: 1 }}>
             <Text style={[t.headline, { color: c.text }]}>Mínimo</Text>
@@ -94,13 +96,13 @@ export default function ItemScreen() {
             onChange={(next) => setMinQty(row, next).catch((e) => reportError(e))}
           />
         </View>
-      </Section>
+      </Card>
 
       {/* live prices (pricely) */}
-      <Section>
+      <Card>
         <Text style={[t.headline, { color: c.text, marginBottom: space.xs }]}>Precios</Text>
         <PriceList productId={p.id} />
-      </Section>
+      </Card>
 
       <About categories={p.categories ?? []} description={p.description ?? null} />
 
@@ -112,17 +114,12 @@ export default function ItemScreen() {
           disabled={onList}
           loading={adding}
           stretch
-          onPress={async () => {
+          onPress={() => {
             setAdding(true)
-            try {
-              // same suggestion the backend's "agregar los que faltan" uses
-              const suggested = min > 0 ? Math.max(1, min - row.quantity) : 1
-              await addToList(row.productId, suggested)
-            } catch (e) {
-              reportError(e, 'No se pudo agregar')
-            } finally {
-              setAdding(false)
-            }
+            // promise chain rather than try/finally: the React Compiler can't compile the latter
+            addToList(row.productId, suggestedQty(row))
+              .catch((e) => reportError(e, 'No se pudo agregar'))
+              .finally(() => setAdding(false))
           }}
         />
         <Button
@@ -144,22 +141,6 @@ export default function ItemScreen() {
         />
       </View>
     </ScrollView>
-  )
-}
-
-function Section({ children }: { children: React.ReactNode }) {
-  const { c } = useTheme()
-  return (
-    <View
-      style={{
-        backgroundColor: c.surface,
-        borderRadius: radius.lg,
-        borderCurve: 'continuous',
-        padding: space.lg,
-      }}
-    >
-      {children}
-    </View>
   )
 }
 

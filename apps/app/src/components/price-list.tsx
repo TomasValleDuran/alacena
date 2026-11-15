@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 
 import { money, priceAge } from '@/lib/format'
-import { myMarkets, myMarketsLabel, type MyPrice } from '@/lib/markets'
+import { myMarkets, myMarketsLabel, priceSpread, type MyPrice } from '@/lib/markets'
 import { useInsights } from '@/store/insights'
 import { radius, space, type as t } from '@/theme/tokens'
 import { useTheme } from '@/theme/use-theme'
@@ -56,24 +56,15 @@ export function PriceList({ productId }: { productId: string }) {
     )
   }
 
-  const cheapest = markets[0]
-  const priciest = markets[markets.length - 1]
-  // spread between our cheapest and our most expensive: "is it worth choosing?"
-  const spread = markets.length > 1 ? Math.round((1 - cheapest.unitPrice / priciest.unitPrice) * 100) : 0
+  const spread = priceSpread(markets)
 
   return (
     <View style={{ gap: space.xs }}>
-      {markets.length > 1 ? (
-        <Text style={[t.footnote, { color: c.text2 }]}>
-          {spread >= 3
-            ? `En ${cheapest.market} pagás ${spread}% menos que en ${priciest.market}`
-            : 'Cuesta casi lo mismo en todos'}
-        </Text>
-      ) : null}
+      {spread.summary != null ? <Text style={[t.footnote, { color: c.text2 }]}>{spread.summary}</Text> : null}
 
       <View style={{ gap: 2 }}>
         {markets.map((m, i) => (
-          <MarketRow key={m.market} m={m} best={i === 0 && markets.length > 1 && spread >= 1} />
+          <MarketRow key={m.market} m={m} best={i === 0 && spread.highlightCheapest} />
         ))}
       </View>
     </View>
