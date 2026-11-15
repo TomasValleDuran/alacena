@@ -1,56 +1,115 @@
-# Welcome to your Expo app 👋
+# Alacena app
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The Expo app for Alacena. One codebase runs on iOS, Android and the web. Rules for coding agents are in [AGENTS.md](AGENTS.md). Repository setup is in the [root README](../../README.md).
 
-## Get started
+## Stack
 
-1. Install dependencies
+- Expo SDK 58 (`expo` ~58.0.25), React 19.3, React Native 0.88
+- expo-router ~58 with typed routes (`experiments.typedRoutes`)
+- React Compiler (`experiments.reactCompiler`)
+- zustand 5 for state (`src/store`)
+- expo-camera for barcodes, expo-sqlite key-value store for preferences (native), localStorage on the web
+- expo-image, react-native-svg, react-native-reanimated (splash), react-native-gesture-handler
+- Jest with `jest-expo`
 
-   ```bash
-   npm install
-   ```
+## Scripts
 
-2. Start the app
+Run from `apps/app` (or use the `app:*` aliases in the root `package.json`).
 
-   ```bash
-   npx expo start
-   ```
+| Command | What it does |
+|---|---|
+| `npm run start` | Start the Expo dev server (`expo start`). |
+| `npm run ios` | Start and open an iOS simulator (`expo start --ios`). |
+| `npm run android` | Start and open an Android emulator (`expo start --android`). |
+| `npm run web` | Start the dev server and open the web app (`expo start --web`). |
+| `npm run lint` | `expo lint` (ESLint, `eslint-config-expo`). |
+| `npm test` | Jest. |
+| `npx tsc --noEmit` | Typecheck. There is no npm script for it. |
 
-In the output, you'll find options to open the app in a
+## Screens
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Routes live only in `src/app`. The tabs are the main screens. The other routes are sheets, which open over the tabs.
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Tabs (`src/app/(tabs)`):
 
-## Get a fresh project
+| Route | Tab label | What it does |
+|---|---|---|
+| `/` (`(pantry)/index.tsx`) | Despensa | The pantry: stock rows with quantity and reorder level. Search, filters (all, restock, out, in stock, on list), grouping (by aisle, by status, none) and sorting (name, quantity, recent). |
+| `/item/[id]` | (pushed from Despensa) | One product: stock, quantity controls, and prices per market from pricely.ar. |
+| `/scan` (`scan.tsx`) | Escanear | Barcode scanner with three modes: Guardar (add), Usar (use), Consultar (check). <!-- VERIFY: on web, this tab takes codes from a USB barcode reader or typed input (scan.web.tsx, in progress). --> |
+| `/list` (`(list)/list.tsx`) | Lista | Shopping list: add free text or a product, add low-stock items, check items off, put checked items away, clear checked items. |
 
-When you're ready, run:
+Sheets (`src/app`, presented as form sheets on native and dialogs on the web):
+
+| Route | Title | What it does |
+|---|---|---|
+| `/new-product` | Producto nuevo / Producto sin código | Create a product, from a scanned code or without one. |
+| `/manual-entry` | Ingresar código | Type a barcode. |
+| `/pantry-options` | Agrupar y ordenar | Grouping and sorting for the pantry. |
+| `/settings` | Ajustes | Set the API address (Servidor). |
+
+Root layout: `src/app/_layout.tsx` (theme, sheet options). Tab layouts: `src/app/(tabs)/_layout.tsx` (native) and `_layout.web.tsx` (web).
+
+## Project structure
+
+| Path | Contents |
+|---|---|
+| `src/app` | Routes only. Every file here is a screen, every `_layout.tsx` is a navigator. |
+| `src/components` | Shared UI: buttons, cards, fields, sheet, scan controls, stock rows, price list, state views. |
+| `src/lib` | Non-UI code: API client (`api.ts`), API address (`server.ts`, `api-host.ts`), storage, alerts, barcode checks, aisles, markets, suggestions, formatting, scan gate. Unit tests sit next to the code. |
+| `src/store` | zustand stores: `stock`, `shopping`, `scan`, `insights`, `pantry-view`, `server`. `resource.ts` holds the load status shared by the list stores. |
+| `src/theme` | Design tokens (`tokens.ts`), `useTheme`, and the tab bar inset hook. |
+| `src/test-utils` | Test factories (`factories.ts`) and the API mock helpers (`mock-api.ts`). |
+| `assets/images` | Icons and splash images referenced by `app.json`. The brand source is in `assets/brand` at the repo root. |
+| `public` | Web template and PWA files: `index.html`, `manifest.json`, `icons/`. |
+
+## Platform-specific files
+
+Platform differences live in sibling files, not in `Platform.OS` branches. Metro picks the `.web.ts(x)` file for the web build and the plain file for native.
+
+| Web file | Native file | Why |
+|---|---|---|
+| `src/app/(tabs)/_layout.web.tsx` | `src/app/(tabs)/_layout.tsx` | Native uses `NativeTabs` (system tab bar). The web uses `expo-router/ui` tabs: a bottom bar on narrow windows and a sidebar from 900 px. |
+| `src/components/sheet.web.tsx` | `src/components/sheet.tsx` | Native routes are already form sheets, so `sheet.tsx` only passes children through. The web version draws a modal dialog over the tabs. |
+| `src/lib/alert.web.ts` | `src/lib/alert.ts` | `Alert.alert` does nothing in react-native-web. The web version uses the browser's dialogs. |
+| `src/lib/api-host.web.ts` | `src/lib/api-host.ts` | Native guesses the API from the Metro host's LAN IP. The web uses the page's own origin in production and the same host on port 3001 in development. |
+| `src/lib/storage.web.ts` | `src/lib/storage.ts` | Native uses expo-sqlite's key-value store. The web uses localStorage, so expo-sqlite (wasm) stays out of the web bundle. |
+
+<!-- VERIFY: src/app/(tabs)/scan.web.tsx is in progress and is not in this worktree. Add it to this table once it lands. -->
+
+## Design tokens
+
+All colors, spacing, radii and type sizes live in `src/theme/tokens.ts`:
+
+- `palette.light` and `palette.dark`: surface, text, accent and status colors. Amber means low stock and red means out of stock.
+- `space`, `radius`, `overlay`, `type`, `HIT` (minimum touch target).
+
+Use `useTheme()` (`src/theme/use-theme.ts`) to get the palette for the current color scheme. Do not hard-code colors in screens.
+
+## Testing
+
+Jest uses the `jest-expo` preset (`jest.config.js`):
+
+- Tests are `src/**/*.test.ts(x)`. They sit next to the code under `src/lib` and `src/store`. None live under `src/app`.
+- `jest.setup.ts` mocks the native modules that load at import time: expo-sqlite's key-value store, expo-haptics, expo-router (`router.push`) and expo-constants.
+- `src/test-utils/mock-api.ts` replaces the `api` object with `jest.fn()` mocks (`mockApiModule`). `deferred()` and `flush()` help control the order of replies.
+- `@/` maps to `src/`.
 
 ```bash
-npm run reset-project
+npm test
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## Native folders
 
-### Other setup steps
+`ios/` and `android/` are generated (Continuous Native Generation). They are git-ignored (`/ios`, `/android` in `.gitignore`). Do not create or edit them by hand. Change native settings in `app.json` and config plugins.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## What cannot be checked without Xcode or a device
 
-## Learn more
+Some behavior can only be checked on a simulator or a real phone:
 
-To learn more about developing your project with Expo, look at the following resources:
+- iOS and Android builds, including EAS builds.
+- Native tab bar and form sheets.
+- Camera barcode scanning, haptics, and safe areas on real hardware.
+- App icon and splash on each platform.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Jest and the web build cover the logic and the layout on the web. They do not cover the native rendering.
