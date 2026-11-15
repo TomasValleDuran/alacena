@@ -1,8 +1,8 @@
-import { router } from 'expo-router'
 import { Pressable, Text, View } from 'react-native'
 
 import { Button } from '@/components/button'
 import { Icon } from '@/components/icon'
+import { closeSheet, Sheet } from '@/components/sheet'
 import { AISLES } from '@/lib/aisles'
 import { feedback } from '@/lib/feedback'
 import { GROUP_LABEL, SORT_LABEL, usePantryView, type GroupBy, type SortBy } from '@/store/pantry-view'
@@ -33,35 +33,37 @@ export default function PantryOptionsSheet() {
         : []
 
   return (
-    <View style={{ padding: space.xl, paddingTop: space.xxl, gap: space.xl }}>
-      <Group title="Agrupar por">
-        {(Object.keys(GROUP_LABEL) as GroupBy[]).map((g) => (
-          <Radio key={g} label={GROUP_LABEL[g]} hint={GROUP_HINT[g]} selected={groupBy === g} onPress={() => setGroupBy(g)} />
-        ))}
-      </Group>
+    <Sheet title="Agrupar y ordenar">
+      <View style={{ padding: space.xl, paddingTop: space.xxl, gap: space.xl }}>
+        <Group title="Agrupar por">
+          {(Object.keys(GROUP_LABEL) as GroupBy[]).map((g) => (
+            <Radio key={g} label={GROUP_LABEL[g]} hint={GROUP_HINT[g]} selected={groupBy === g} onPress={() => setGroupBy(g)} />
+          ))}
+        </Group>
 
-      <Group title="Ordenar">
-        {(Object.keys(SORT_LABEL) as SortBy[]).map((s) => (
-          <Radio key={s} label={SORT_LABEL[s]} hint={SORT_HINT[s]} selected={sortBy === s} onPress={() => setSortBy(s)} />
-        ))}
-      </Group>
+        <Group title="Ordenar">
+          {(Object.keys(SORT_LABEL) as SortBy[]).map((s) => (
+            <Radio key={s} label={SORT_LABEL[s]} hint={SORT_HINT[s]} selected={sortBy === s} onPress={() => setSortBy(s)} />
+          ))}
+        </Group>
 
-      {groupBy !== 'none' ? (
-        <View style={{ flexDirection: 'row', gap: space.sm }}>
-          <View style={{ flex: 1 }}>
-            <Button label="Abrir todas" variant="secondary" onPress={() => setCollapsed([])} />
+        {groupBy !== 'none' ? (
+          <View style={{ flexDirection: 'row', gap: space.sm }}>
+            <View style={{ flex: 1 }}>
+              <Button label="Abrir todas" variant="secondary" onPress={() => setCollapsed([])} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button label="Cerrar todas" variant="secondary" onPress={() => setCollapsed(allKeys)} />
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Button label="Cerrar todas" variant="secondary" onPress={() => setCollapsed(allKeys)} />
-          </View>
-        </View>
-      ) : null}
+        ) : null}
 
-      <Button label="Listo" onPress={() => router.back()} stretch />
-      <Text style={[t.footnote, { color: c.text2, textAlign: 'center', marginTop: -space.sm }]}>
-        Se recuerda en este teléfono.
-      </Text>
-    </View>
+        <Button label="Listo" onPress={closeSheet} stretch />
+        <Text style={[t.footnote, { color: c.text2, textAlign: 'center', marginTop: -space.sm }]}>
+          Se recuerda en este teléfono.
+        </Text>
+      </View>
+    </Sheet>
   )
 }
 

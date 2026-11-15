@@ -1,10 +1,10 @@
 import Constants from 'expo-constants'
-import { router } from 'expo-router'
 import { useState } from 'react'
 import { Text, View } from 'react-native'
 
 import { Button } from '@/components/button'
 import { Field } from '@/components/field'
+import { closeSheet, Sheet } from '@/components/sheet'
 import { api } from '@/lib/api'
 import { defaultApiUrl, trimSlash } from '@/lib/server'
 import { useServer } from '@/store/server'
@@ -35,59 +35,61 @@ export default function SettingsSheet() {
     useShopping.setState({ status: 'idle', items: [] })
     void useStock.getState().fetch()
     void useShopping.getState().fetch()
-    router.back()
+    closeSheet()
   }
 
   return (
-    <View style={{ padding: space.xl, paddingTop: space.xxl, gap: space.lg }}>
-      <View style={{ gap: space.xs }}>
-        <Text style={[t.title, { color: c.text }]}>Servidor</Text>
-        <Text style={[t.callout, { color: c.text2, lineHeight: 21 }]}>
-          Dirección de back-alacena. En casa suele ser la IP de la compu en la red Wi-Fi, puerto 3001.
+    <Sheet title="Ajustes">
+      <View style={{ padding: space.xl, paddingTop: space.xxl, gap: space.lg }}>
+        <View style={{ gap: space.xs }}>
+          <Text style={[t.title, { color: c.text }]}>Servidor</Text>
+          <Text style={[t.callout, { color: c.text2, lineHeight: 21 }]}>
+            Dirección de back-alacena. En casa suele ser la IP de la compu en la red Wi-Fi, puerto 3001.
+          </Text>
+        </View>
+
+        <Field
+          label="URL"
+          value={draft}
+          onChangeText={(v) => {
+            setDraft(v)
+            setProbe({ state: 'idle' })
+          }}
+          placeholder="http://192.168.0.10:3001"
+          keyboardType="url"
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="done"
+          onSubmitEditing={test}
+        />
+
+        <View accessibilityLiveRegion="polite" style={{ minHeight: 20 }}>
+          {probe.state === 'ok' ? (
+            <Text style={[t.callout, { color: c.accent, fontWeight: '600' }]}>Conectado ✓</Text>
+          ) : probe.state === 'fail' ? (
+            <Text style={[t.callout, { color: c.danger }]}>
+              No responde. ¿Está corriendo el backend y el teléfono en la misma red?
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={{ gap: space.xs }}>
+          <Button label="Probar conexión" variant="secondary" onPress={test} loading={probe.state === 'testing'} disabled={!valid} stretch />
+          <Button label="Guardar" onPress={() => save(url)} disabled={!valid || url === apiUrl} stretch />
+          {isCustom ? (
+            <Button
+              label={`Volver a la automática (${defaultApiUrl()})`}
+              variant="quiet"
+              onPress={() => save(null)}
+              stretch
+            />
+          ) : null}
+        </View>
+
+        <Text style={[t.footnote, { color: c.text2, textAlign: 'center' }]}>
+          Alacena {Constants.expoConfig?.version ?? ''}
         </Text>
       </View>
-
-      <Field
-        label="URL"
-        value={draft}
-        onChangeText={(v) => {
-          setDraft(v)
-          setProbe({ state: 'idle' })
-        }}
-        placeholder="http://192.168.0.10:3001"
-        keyboardType="url"
-        autoCapitalize="none"
-        autoCorrect={false}
-        returnKeyType="done"
-        onSubmitEditing={test}
-      />
-
-      <View accessibilityLiveRegion="polite" style={{ minHeight: 20 }}>
-        {probe.state === 'ok' ? (
-          <Text style={[t.callout, { color: c.accent, fontWeight: '600' }]}>Conectado ✓</Text>
-        ) : probe.state === 'fail' ? (
-          <Text style={[t.callout, { color: c.danger }]}>
-            No responde. ¿Está corriendo el backend y el teléfono en la misma red?
-          </Text>
-        ) : null}
-      </View>
-
-      <View style={{ gap: space.xs }}>
-        <Button label="Probar conexión" variant="secondary" onPress={test} loading={probe.state === 'testing'} disabled={!valid} stretch />
-        <Button label="Guardar" onPress={() => save(url)} disabled={!valid || url === apiUrl} stretch />
-        {isCustom ? (
-          <Button
-            label={`Volver a la automática (${defaultApiUrl()})`}
-            variant="quiet"
-            onPress={() => save(null)}
-            stretch
-          />
-        ) : null}
-      </View>
-
-      <Text style={[t.footnote, { color: c.text2, textAlign: 'center' }]}>
-        Alacena {Constants.expoConfig?.version ?? ''}
-      </Text>
-    </View>
+    </Sheet>
   )
 }
