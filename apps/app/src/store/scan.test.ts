@@ -98,6 +98,20 @@ describe('submit: validation', () => {
     await flush()
     expect(mocked.resolveProduct).toHaveBeenCalledWith(A)
   })
+
+  it.each(['camera', 'manual'] as const)('%s: a UPC-A in its 13-digit form is looked up as 12 digits', async (source) => {
+    mocked.resolveProduct.mockResolvedValue(milk)
+    useScan.getState().submit(' 0036000291452 ', source)
+    await flush()
+    expect(mocked.resolveProduct).toHaveBeenCalledWith('036000291452')
+  })
+
+  it('a typed 0-prefixed 13-digit code with a bad check digit is reported in its 12-digit form', async () => {
+    useScan.getState().submit('0036000291453', 'manual')
+    await flush()
+    expect(mocked.resolveProduct).not.toHaveBeenCalled()
+    expect(useScan.getState().notice?.text).toBe('036000291453 no es un código válido. Revisá los números.')
+  })
 })
 
 describe('modes', () => {

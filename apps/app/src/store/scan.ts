@@ -2,7 +2,7 @@ import { router } from 'expo-router'
 import { create } from 'zustand'
 
 import { api, errorMessage } from '@/lib/api'
-import { isPlausibleRetailCode } from '@/lib/barcode'
+import { isPlausibleRetailCode, normalizeScanned } from '@/lib/barcode'
 import { feedback } from '@/lib/feedback'
 import type { Product } from '@/lib/types'
 
@@ -116,7 +116,9 @@ export const useScan = create<ScanState>((set, get) => {
     setPerScan: (n) => set({ perScan: Math.min(99, Math.max(1, Math.round(n))) }),
 
     submit(raw, source) {
-      const code = raw.trim()
+      // trims, and turns iOS's 13-digit form of a UPC-A into the 12 digits the
+      // catalog uses — for typed and USB-reader codes as much as camera ones
+      const code = normalizeScanned(raw)
       if (code.length < 4) return
       if (!isPlausibleRetailCode(code)) {
         // the camera re-reads constantly, so a bad frame is just ignored;
