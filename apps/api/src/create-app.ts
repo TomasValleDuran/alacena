@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { type Express } from 'express'
 import cors from 'cors'
 import { products } from './routes/products.js'
 import { stock } from './routes/stock.js'
@@ -12,9 +12,8 @@ function allowedOrigins(): string[] {
   return raw.split(',').map((o) => o.trim()).filter(Boolean)
 }
 
-export function createApp() {
-  const app = express()
-
+/** Configures `app` (a fresh express() by default, so tests can call createApp()). */
+export function createApp(app: Express = express()) {
   app.use(cors({ origin: allowedOrigins() }))
   app.use(express.json())
 
